@@ -1,5 +1,7 @@
 use std::fs::read_dir;
 use std::fs::ReadDir;
+use std::fs::DirEntry;
+use std::ffi::OsString;
 use std::path::Path;
 use std::result::Result;
 
@@ -10,15 +12,14 @@ fn main() {
         Err(_) => return,
     };
 
-    for dir in dirs.into_iter() {
-        match dir {
-            Ok(file) => {
-                match file.file_name().into_string() {
-                    Ok(file_name) => println!("{}", file_name),
-                    Err(_) => {},
-                }
-            },
-            Err(_) => {},
-        }
+    for file in dirs
+        .into_iter()
+        .filter(Result::is_ok)
+        .map(Result::unwrap)
+        .map(|dir| dir.file_name())
+        .map(OsString::into_string)
+        .filter(Result::is_ok)
+        .map(Result::unwrap) {
+        println!("{}", file);
     }
 }
