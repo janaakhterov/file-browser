@@ -1,0 +1,7 @@
+[package]
+name = "file_browser"
+version = "0.1.0"
+authors = ["Daniel Akhterov <akhterovd@gmail.com>"]
+edition = "2018"
+
+[dependencies]
