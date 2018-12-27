@@ -4,6 +4,8 @@ use std::result::Result;
 use failure::Error;
 use cursive::Cursive;
 use cursive::views::TextView;
+use cursive::views::ListView;
+use cursive::views::SelectView;
 
 fn main() -> Result<(), Error> {
     let mut dirs: Vec<String> = Vec::new();
@@ -24,17 +26,20 @@ fn main() -> Result<(), Error> {
     dirs.sort();
     files.sort();
 
-    // for dir in dirs {
+    // for dir in dirs 
     //     println!("{}", dir);
     // }
 
-    // for file in files {
-    //     println!("{}", file);
-    // }
+    let mut files_view = SelectView::new();
+    for file in files {
+        // println!("{}", file)
+        // string_file.push_str(&format!("{}\n", file));
+        files_view.add_item(file, 0);
+    }
 
     let mut siv = Cursive::ncurses();
 
-    siv.add_layer(TextView::new("Hello World"));
+    siv.add_layer(files_view);
 
     siv.add_global_callback('q', |s| s.quit());
 
