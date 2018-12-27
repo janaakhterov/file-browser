@@ -6,6 +6,7 @@ use cursive::Cursive;
 use cursive::views::TextView;
 use cursive::views::ListView;
 use cursive::views::SelectView;
+use cursive::views::ScrollView;
 
 fn main() -> Result<(), Error> {
     let mut dirs: Vec<String> = Vec::new();
@@ -30,12 +31,7 @@ fn main() -> Result<(), Error> {
     //     println!("{}", dir);
     // }
 
-    let mut files_view = SelectView::new();
-    for file in files {
-        // println!("{}", file)
-        // string_file.push_str(&format!("{}\n", file));
-        files_view.add_item(file, 0);
-    }
+    let mut files_view = ScrollView::new(SelectView::new().with_all_str(files.into_iter()));
 
     let mut siv = Cursive::ncurses();
 
