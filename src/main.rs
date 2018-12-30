@@ -7,10 +7,14 @@ use cursive::views::SelectView;
 use cursive::views::ScrollView;
 use cursive::views::IdView;
 use cursive::views::BoxView;
+use cursive::event::Event;
+use cursive::event::Key;
 
 fn main() -> Result<(), Error> {
     let mut dirs: Vec<String> = Vec::new();
     let mut files: Vec<String> = Vec::new();
+    let mut entries: Vec<String> = Vec::new();
+    let mut test_data: Vec<String> = Vec::new();
 
     for entry in read_dir(&Path::new("/home/daniel"))?
         .into_iter()
@@ -24,10 +28,18 @@ fn main() -> Result<(), Error> {
             }
     }
 
+    for _ in 0..40 {
+        test_data.push("test".to_string());
+    }
+
     dirs.sort();
     files.sort();
 
-    let files_view = BoxView::with_full_screen(ScrollView::new(IdView::new("files", SelectView::new().with_all_str(files.into_iter()))));
+    entries.extend_from_slice(dirs.as_slice());
+    entries.extend_from_slice(files.as_slice());
+    entries.extend_from_slice(test_data.as_slice());
+
+    let files_view = ScrollView::new(SelectView::new().with_all_str(entries.into_iter())).show_scrollbars(false);
 
     let mut siv = Cursive::ncurses();
 
@@ -36,17 +48,11 @@ fn main() -> Result<(), Error> {
     siv.add_fullscreen_layer(files_view);
 
     siv.add_global_callback('q', |s| s.quit());
-
     siv.add_global_callback('j', |s| {
-        s.call_on_id("files", |view: &mut SelectView| {
-            view.select_down(1);
-        });
+        s.on_event(Event::Key(Key::Down));
     });
-
     siv.add_global_callback('k', |s| {
-        s.call_on_id("files", |view: &mut SelectView| {
-            view.select_up(1);
-        });
+        s.on_event(Event::Key(Key::Up));
     });
 
     siv.run();
