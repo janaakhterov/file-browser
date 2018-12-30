@@ -3,6 +3,6 @@ borders = "none"
 
 [colors]
 background = ["black"]
-view = ["black"]
+view = ["yellow"]
 primary = ["white"]
 highlight = ["blue"]

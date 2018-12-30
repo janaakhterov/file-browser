@@ -6,6 +6,7 @@ use cursive::Cursive;
 use cursive::views::SelectView;
 use cursive::views::ScrollView;
 use cursive::views::IdView;
+use cursive::views::BoxView;
 
 fn main() -> Result<(), Error> {
     let mut dirs: Vec<String> = Vec::new();
@@ -26,13 +27,13 @@ fn main() -> Result<(), Error> {
     dirs.sort();
     files.sort();
 
-    let files_view = ScrollView::new(IdView::new("files", SelectView::new().with_all_str(files.into_iter())));
+    let files_view = BoxView::with_full_screen(ScrollView::new(IdView::new("files", SelectView::new().with_all_str(files.into_iter()))));
 
     let mut siv = Cursive::ncurses();
 
     siv.load_theme_file("styles.toml").unwrap();
 
-    siv.add_layer(files_view);
+    siv.add_fullscreen_layer(files_view);
 
     siv.add_global_callback('q', |s| s.quit());
 
