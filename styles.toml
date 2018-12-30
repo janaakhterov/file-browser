@@ -1,0 +1,8 @@
+shadows = false
+borders = "none"
+
+[colors]
+background = ["black"]
+view = ["black"]
+primary = ["white"]
+highlight = ["blue"]

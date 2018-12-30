@@ -3,11 +3,9 @@ use std::path::Path;
 use std::result::Result;
 use failure::Error;
 use cursive::Cursive;
-use cursive::views::TextView;
-use cursive::views::ListView;
 use cursive::views::SelectView;
 use cursive::views::ScrollView;
-use cursive::theme::load_default;
+use cursive::views::IdView;
 
 fn main() -> Result<(), Error> {
     let mut dirs: Vec<String> = Vec::new();
@@ -28,21 +26,27 @@ fn main() -> Result<(), Error> {
     dirs.sort();
     files.sort();
 
-    // for dir in dirs 
-    //     println!("{}", dir);
-    // }
-
-
-    let mut files_view = ScrollView::new(SelectView::new().with_all_str(files.into_iter()));
+    let files_view = ScrollView::new(IdView::new("files", SelectView::new().with_all_str(files.into_iter())));
 
     let mut siv = Cursive::ncurses();
-    let mut theme = siv.current_theme().clone();
-    theme.shadow = false;
-    siv.set_theme(theme);
+
+    siv.load_theme_file("styles.toml").unwrap();
 
     siv.add_layer(files_view);
 
     siv.add_global_callback('q', |s| s.quit());
+
+    siv.add_global_callback('j', |s| {
+        s.call_on_id("files", |view: &mut SelectView| {
+            view.select_down(1);
+        });
+    });
+
+    siv.add_global_callback('k', |s| {
+        s.call_on_id("files", |view: &mut SelectView| {
+            view.select_up(1);
+        });
+    });
 
     siv.run();
 
