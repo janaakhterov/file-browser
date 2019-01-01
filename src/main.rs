@@ -10,18 +10,13 @@ use cursive::views::BoxView;
 use cursive::event::Event;
 use cursive::event::Key;
 use cursive::theme::ColorStyle;
+use cursive::utils::span::SpannedString;
+use cursive::theme::Style;
 
 fn main() -> Result<(), Error> {
-    let mut siv = Cursive::ncurses();
-
-    siv.load_theme_file("styles.toml").unwrap();
-
     let mut dirs: Vec<String> = Vec::new();
     let mut files: Vec<String> = Vec::new();
-    let mut entries: Vec<String> = Vec::new();
-    let mut test_data: Vec<String> = Vec::new();
-    let mut entries_style: Vec<ColorStyle> = Vec::new();
-
+    let mut entries:Vec<(SpannedString<Style>, &'static str)> = Vec::new();
 
     for entry in read_dir(&Path::new("/home/daniel"))?
         .into_iter()
@@ -41,51 +36,50 @@ fn main() -> Result<(), Error> {
                 let file_size = format!("{:>width$}", file_size, width = 10);
                 let file_name = format!("{:<width$}{}", file_name, file_size, width = 30);
                 dirs.push(file_name);
-                entries_style.push(ColorStyle::new(
-                    *siv.current_theme().palette.custom("directory").unwrap(),
-                    *siv.current_theme().palette.custom("directory-background").unwrap(),
-                ));
             }else if meta.is_file() {
                 let file_size = meta.len();
                 let file_size = format!("{} B", file_size);
                 let file_size = format!("{:>width$}", file_size, width = 10);
                 let file_name = format!("{:<width$}{}", file_name, file_size, width = 30);
                 files.push(file_name);
-                entries_style.push(ColorStyle::new(
-                    *siv.current_theme().palette.custom("files").unwrap(),
-                    *siv.current_theme().palette.custom("files").unwrap(),
-                ));
             }
     }
 
-    for _ in 0..40 {
-        test_data.push(" ".to_string());
-    }
+    dirs.sort();
+    files.sort();
 
-    for color in entries_style.iter() {
-        println!("{:?}", color);
-    }
+    let mut siv = Cursive::ncurses();
 
-    // dirs.sort();
-    // files.sort();
+    siv.load_theme_file("styles.toml").unwrap();
 
-    // entries.extend_from_slice(dirs.as_slice());
-    // entries.extend_from_slice(files.as_slice());
-    // entries.extend_from_slice(test_data.as_slice());
+    let palette = &siv.current_theme().palette;
 
-    // let files_view = ScrollView::new(SelectView::new().with_all_str(entries.into_iter())).show_scrollbars(false);
+    let dirs = dirs.into_iter().map(|dir| {
+        (SpannedString::styled(dir, ColorStyle::new(palette.custom("directory").unwrap().clone(), 
+                                                    palette.custom("directory-background").unwrap().clone())), "")
+    }).collect::<Vec<(SpannedString<Style>, &'static str)>>();
 
-    // siv.add_fullscreen_layer(files_view);
+    let files = files.into_iter().map(|file| {
+        (SpannedString::styled(file, ColorStyle::new(palette.custom("file").unwrap().clone(), 
+                                                    palette.custom("file-background").unwrap().clone())), "")
+    }).collect::<Vec<(SpannedString<Style>, &'static str)>>();
 
-    // siv.add_global_callback('q', |s| s.quit());
-    // siv.add_global_callback('j', |s| {
-    //     s.on_event(Event::Key(Key::Down));
-    // });
-    // siv.add_global_callback('k', |s| {
-    //     s.on_event(Event::Key(Key::Up));
-    // });
+    entries.extend_from_slice(dirs.as_slice());
+    entries.extend_from_slice(files.as_slice());
 
-    // siv.run();
+    let files_view = ScrollView::new(SelectView::new().with_all(entries.into_iter())).show_scrollbars(false);
+
+    siv.add_fullscreen_layer(files_view);
+
+    siv.add_global_callback('q', |s| s.quit());
+    siv.add_global_callback('j', |s| {
+        s.on_event(Event::Key(Key::Down));
+    });
+    siv.add_global_callback('k', |s| {
+        s.on_event(Event::Key(Key::Up));
+    });
+
+    siv.run();
 
     Ok(())
 }
