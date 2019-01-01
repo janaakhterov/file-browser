@@ -13,6 +13,8 @@ use cursive::theme::ColorStyle;
 use cursive::utils::span::SpannedString;
 use cursive::theme::Style;
 
+mod directory_view;
+
 fn main() -> Result<(), Error> {
     let mut dirs: Vec<String> = Vec::new();
     let mut files: Vec<String> = Vec::new();
@@ -61,13 +63,15 @@ fn main() -> Result<(), Error> {
 
     let files = files.into_iter().map(|file| {
         (SpannedString::styled(file, ColorStyle::new(palette.custom("file").unwrap().clone(), 
-                                                    palette.custom("file-background").unwrap().clone())), "")
+                                                     palette.custom("file-background").unwrap().clone())), "")
     }).collect::<Vec<(SpannedString<Style>, &'static str)>>();
 
     entries.extend_from_slice(dirs.as_slice());
     entries.extend_from_slice(files.as_slice());
 
-    let files_view = ScrollView::new(SelectView::new().with_all(entries.into_iter())).show_scrollbars(false);
+    let mut files_view = ScrollView::new(SelectView::new().with_all(entries.into_iter())).show_scrollbars(false);
+
+    files_view.get_inner_mut().set_selection(2);
 
     siv.add_fullscreen_layer(files_view);
 
