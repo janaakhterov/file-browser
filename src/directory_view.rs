@@ -20,7 +20,9 @@ use failure::err_msg;
 use std::fs::read_dir;
 use std::path::Path;
 use std::result::Result;
+use std::cmp;
 
+#[derive(Ord, PartialOrd, Eq, PartialEq)]
 struct Entry {
     name: String,
     size: usize,
@@ -30,13 +32,12 @@ pub struct DirectoryView {
     dirs: Vec<Entry>,
     files: Vec<Entry>,
     focus: Rc<Cell<usize>>,
+    dir_color: ColorStyle,
+    dir_highlight_color: ColorStyle,
+    file_color: ColorStyle,
+    file_highlight_color: ColorStyle,
+    align: Align,
     last_offset: Cell<Vec2>,
-}
-
-impl Default for DirectoryView {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 impl DirectoryView {
@@ -45,11 +46,16 @@ impl DirectoryView {
             dirs: Vec::new(),
             files: Vec::new(),
             focus: Rc::new(Cell::new(0)),
+            dir_color: ColorStyle::primary(),
+            dir_highlight_color: ColorStyle::highlight(),
+            file_color: ColorStyle::primary(),
+            file_highlight_color: ColorStyle::highlight(),
+            align: Align::top_left(),
             last_offset: Cell::new(Vec2::zero()),
         }
     }
 
-    fn from(path: &Path) -> Result<DirectoryView, Error> {
+    pub fn from(path: &Path) -> Result<DirectoryView, Error> {
         let mut view = DirectoryView::new();
 
         for entry in read_dir(path)?
@@ -70,14 +76,27 @@ impl DirectoryView {
                                          .map(Result::unwrap)
                                          .collect::<Vec<_>>()
                                          .len();
-                view.dirs.push((name, size as usize));
+                view.dirs.push(Entry {
+                    name, 
+                    size: size as usize,
+                });
             } else if meta.is_file() {
                 let size = meta.len();
-                view.files.push((name, size as usize));
+                view.files.push(Entry {
+                    name, 
+                    size: size as usize,
+                });
             }
         }
 
+        view.dirs.sort();
+        view.files.sort();
+
         Ok(view)
+    }
+
+    fn focus(&self) -> usize {
+        self.focus.get()
     }
 }
 
@@ -92,59 +111,53 @@ impl View for DirectoryView {
         for i in 0..self.dirs.len() {
             if i == self.focus() {
                 printer.with_color(
-                    Color::highlight(),
-                    |printer| printer.print((0, i), dirs[i].name);
+                    self.dir_highlight_color,
+                    |printer| { printer.print((0, i), &self.dirs[i].name); },
                 );
             } else {
                 printer.with_color(
-                    Color::highlight(),
-                    |printer| printer.print((0, i), dirs[i].name);
+                    self.dir_color,
+                    |printer| { printer.print((0, i), &self.dirs[i].name); },
                 );
             }
-            printer.offset((0, i)).with_selection(
-                i == self.focus(),
-                |printer| {
-                    if i != self.focus()
-                        && !(self.enabled && printer.enabled)
-                    {
-                        printer.with_color(
-                            ColorStyle::secondary(),
-                            |printer| self.draw_item(printer, i),
-                        );
-                    } else {
-                        self.draw_item(printer, i);
-                    }
-                },
-            );
+        }
+        for i in 0..self.files.len() {
+            if i + self.dirs.len()  == self.focus() {
+                printer.with_color(
+                    self.file_highlight_color,
+                    |printer| { printer.print((0, i + self.dirs.len()), &self.files[i].name); },
+                );
+            } else {
+                printer.with_color(
+                    self.file_color,
+                    |printer| { printer.print((0, i + self.dirs.len()), &self.files[i].name); },
+                );
+            }
         }
     }
 
-//     fn required_size(&mut self, _: Vec2) -> Vec2 {
-//         // Items here are not compressible.
-//         // So no matter what the horizontal requirements are,
-//         // we'll still return our longest item.
-//         let w = self
-//             .items
-//             .iter()
-//             .map(|item| item.label.width())
-//             .max()
-//             .unwrap_or(1);
-//         if self.popup {
-//             Vec2::new(w + 2, 1)
-//         } else {
-//             let h = self.items.len();
+    fn required_size(&mut self, _: Vec2) -> Vec2 {
+        let h = self.dirs.len() + self.files.len();
 
-//             Vec2::new(w, h)
-//         }
-//     }
+        let w = { 
+            cmp::max(self.dirs
+                    .iter()
+                    .map(|dir| dir.name.len())
+                    .max()
+                    .unwrap_or(1),
+                self.files
+                    .iter()
+                    .map(|file| file.name.len())
+                    .max()
+                    .unwrap_or(1))
+        };
 
-//     fn on_event(&mut self, event: Event) -> EventResult {
-//         if self.popup {
-//             self.on_event_popup(event)
-//         } else {
-//             self.on_event_regular(event)
-//         }
-//     }
+        Vec2::new(w, h)
+    }
+
+    fn on_event(&mut self, event: Event) -> EventResult {
+        self.on_event_regular(event)
+    }
 
 //     fn take_focus(&mut self, _: Direction) -> bool {
 //         self.enabled && !self.items.is_empty()
