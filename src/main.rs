@@ -14,7 +14,10 @@ use cursive::utils::span::SpannedString;
 use cursive::theme::Style;
 use crate::directory_view::DirectoryView;
 
+mod pallete;
 mod directory_view;
+#[macro_use]
+mod macros;
 
 fn main() -> Result<(), Error> {
     let mut siv = Cursive::ncurses();

@@ -8,6 +8,8 @@ use std::cell::Cell;
 use std::cmp::min;
 use std::rc::Rc;
 use cursive::theme::ColorStyle;
+use cursive::theme::BaseColor;
+use cursive::theme::Color;
 use cursive::utils::markup::StyledString;
 use cursive::vec::Vec2;
 use cursive::view::{Position, View};
@@ -21,6 +23,8 @@ use std::fs::read_dir;
 use std::path::Path;
 use std::result::Result;
 use std::cmp;
+#[macro_use]
+use crate::print_full_width;
 
 #[derive(Ord, PartialOrd, Eq, PartialEq)]
 struct Entry {
@@ -42,14 +46,34 @@ pub struct DirectoryView {
 
 impl DirectoryView {
     fn new() -> Self {
+        let dir_color = ColorStyle::new(
+            Color::Dark(BaseColor::Blue),
+            Color::Dark(BaseColor::Black),
+        );
+
+        let dir_highlight_color = ColorStyle::new(
+            dir_color.back,
+            dir_color.front,
+        );
+
+        let file_color = ColorStyle::new(
+            Color::Dark(BaseColor::White),
+            Color::Dark(BaseColor::Black),
+        );
+
+        let file_highlight_color = ColorStyle::new(
+            file_color.back,
+            file_color.front,
+        );
+
         DirectoryView {
             dirs: Vec::new(),
             files: Vec::new(),
             focus: Rc::new(Cell::new(0)),
-            dir_color: ColorStyle::primary(),
-            dir_highlight_color: ColorStyle::highlight(),
-            file_color: ColorStyle::primary(),
-            file_highlight_color: ColorStyle::highlight(),
+            dir_color,
+            dir_highlight_color,
+            file_color,
+            file_highlight_color,
             align: Align::top_left(),
             last_offset: Cell::new(Vec2::zero()),
         }
@@ -95,8 +119,36 @@ impl DirectoryView {
         Ok(view)
     }
 
-    fn focus(&self) -> usize {
+    pub fn focus_first(&mut self) {
+        self.focus.set(0);
+    }
+
+    pub fn focus_last(&mut self) {
+        self.focus.set(self.total_list_size() - 1)
+    }
+
+    pub fn focus(&self) -> usize {
         self.focus.get()
+    }
+
+    pub fn total_list_size(&self) -> usize {
+        self.dirs.len() + self.files.len()
+    }
+
+    pub fn change_focus_by(&mut self, difference: i64) {
+        let focus = self.focus.get();
+        let new_focus = if difference > 0 { 
+            if focus + difference as usize >= self.total_list_size() {
+                (self.total_list_size() - 1) as usize
+            } else {
+                focus.saturating_add(difference as usize)
+            }
+        } else if difference < 0 {
+            focus.saturating_sub(difference.abs() as usize)
+        } else {
+            focus
+        };
+        self.focus.set(new_focus);
     }
 }
 
@@ -107,30 +159,37 @@ impl View for DirectoryView {
         let h = self.dirs.len() + self.files.len();
         let offset = self.align.v.get_offset(h, printer.size.y);
         let printer = &printer.offset((0, offset));
+        let dirs_len = self.dirs.len();
 
-        for i in 0..self.dirs.len() {
+        for i in 0..dirs_len {
+            let name = &self.dirs[i].name;
+
             if i == self.focus() {
                 printer.with_color(
                     self.dir_highlight_color,
-                    |printer| { printer.print((0, i), &self.dirs[i].name); },
+                    print_full_width!(name, i),
                 );
             } else {
                 printer.with_color(
                     self.dir_color,
-                    |printer| { printer.print((0, i), &self.dirs[i].name); },
+                    print_full_width!(name, i),
                 );
             }
         }
+
         for i in 0..self.files.len() {
-            if i + self.dirs.len()  == self.focus() {
+            let name = &self.files[i].name;
+            let pos = i + dirs_len;
+
+            if pos == self.focus() {
                 printer.with_color(
                     self.file_highlight_color,
-                    |printer| { printer.print((0, i + self.dirs.len()), &self.files[i].name); },
+                    print_full_width!(name, pos),
                 );
             } else {
                 printer.with_color(
                     self.file_color,
-                    |printer| { printer.print((0, i + self.dirs.len()), &self.files[i].name); },
+                    print_full_width!(name, pos),
                 );
             }
         }
@@ -156,21 +215,24 @@ impl View for DirectoryView {
     }
 
     fn on_event(&mut self, event: Event) -> EventResult {
-        self.on_event_regular(event)
+        match event {
+            Event::Key(Key::Up) => self.change_focus_by(1),
+            Event::Key(Key::Down) => self.change_focus_by(-1),
+            Event::Key(Key::PageUp) => self.change_focus_by(10),
+            Event::Key(Key::PageDown) => self.change_focus_by(-10),
+            Event::Key(Key::Home) => self.focus.set(0),
+            Event::Key(Key::End) => self.focus.set(self.total_list_size() - 1),
+            Event::Char(c) => {
+                match c {
+                    'j' => self.change_focus_by(1),
+                    'k' => self.change_focus_by(-1),
+                    _ => return EventResult::Ignored,
+                }
+            },
+            _ => return EventResult::Ignored,
+        }
+
+        EventResult::Consumed(None)
     }
-
-//     fn take_focus(&mut self, _: Direction) -> bool {
-//         self.enabled && !self.items.is_empty()
-//     }
-
-//     fn layout(&mut self, size: Vec2) {
-//         self.last_size = size;
-//     }
-
-//     fn important_area(&self, size: Vec2) -> Rect {
-//         self.selected_id()
-//             .map(|i| Rect::from_size((0, i), (size.x, 1)))
-//             .unwrap_or_else(|| Rect::from((0, 0)))
-//     }
 }
 
