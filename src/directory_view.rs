@@ -25,6 +25,7 @@ use std::result::Result;
 use std::cmp;
 #[macro_use]
 use crate::print_full_width;
+use crate::palette::Palette;
 
 #[derive(Ord, PartialOrd, Eq, PartialEq)]
 struct Entry {
@@ -36,44 +37,18 @@ pub struct DirectoryView {
     dirs: Vec<Entry>,
     files: Vec<Entry>,
     focus: Rc<Cell<usize>>,
-    dir_color: ColorStyle,
-    dir_highlight_color: ColorStyle,
-    file_color: ColorStyle,
-    file_highlight_color: ColorStyle,
+    palette: Palette,
     align: Align,
     last_offset: Cell<Vec2>,
 }
 
 impl DirectoryView {
     fn new() -> Self {
-        let dir_color = ColorStyle::new(
-            Color::Dark(BaseColor::Blue),
-            Color::Dark(BaseColor::Black),
-        );
-
-        let dir_highlight_color = ColorStyle::new(
-            dir_color.back,
-            dir_color.front,
-        );
-
-        let file_color = ColorStyle::new(
-            Color::Dark(BaseColor::White),
-            Color::Dark(BaseColor::Black),
-        );
-
-        let file_highlight_color = ColorStyle::new(
-            file_color.back,
-            file_color.front,
-        );
-
         DirectoryView {
             dirs: Vec::new(),
             files: Vec::new(),
             focus: Rc::new(Cell::new(0)),
-            dir_color,
-            dir_highlight_color,
-            file_color,
-            file_highlight_color,
+            palette: Palette::new(),
             align: Align::top_left(),
             last_offset: Cell::new(Vec2::zero()),
         }
@@ -166,12 +141,12 @@ impl View for DirectoryView {
 
             if i == self.focus() {
                 printer.with_color(
-                    self.dir_highlight_color,
+                    self.palette.dir_high,
                     print_full_width!(name, i),
                 );
             } else {
                 printer.with_color(
-                    self.dir_color,
+                    self.palette.dir,
                     print_full_width!(name, i),
                 );
             }
@@ -183,12 +158,12 @@ impl View for DirectoryView {
 
             if pos == self.focus() {
                 printer.with_color(
-                    self.file_highlight_color,
+                    self.palette.file_high,
                     print_full_width!(name, pos),
                 );
             } else {
                 printer.with_color(
-                    self.file_color,
+                    self.palette.file,
                     print_full_width!(name, pos),
                 );
             }

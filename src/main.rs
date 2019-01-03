@@ -14,7 +14,7 @@ use cursive::utils::span::SpannedString;
 use cursive::theme::Style;
 use crate::directory_view::DirectoryView;
 
-mod pallete;
+mod palette;
 mod directory_view;
 #[macro_use]
 mod macros;

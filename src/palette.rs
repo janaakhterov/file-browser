@@ -2,7 +2,7 @@ use cursive::theme::ColorStyle;
 use cursive::theme::Color;
 use cursive::theme::BaseColor;
 
-pub enum PalleteColor {
+pub enum PaletteColor {
     File,
     FileHigh,
     Dir,
@@ -11,7 +11,7 @@ pub enum PalleteColor {
     ExecHigh,
 }
 
-pub struct Pallete {
+pub struct Palette {
     pub file: ColorStyle,
     pub file_high: ColorStyle,
     pub dir: ColorStyle,
@@ -20,8 +20,8 @@ pub struct Pallete {
     pub exec_high: ColorStyle,
 }
 
-impl Pallete {
-    fn new() -> Self {
+impl Palette {
+    pub fn new() -> Self {
         let file = ColorStyle::new(
             Color::Dark(BaseColor::White),
             Color::Dark(BaseColor::Black),
@@ -52,7 +52,7 @@ impl Pallete {
             exec.front,
         );
 
-        Pallete {
+        Palette {
             file,
             file_high,
             dir,
@@ -62,7 +62,7 @@ impl Pallete {
         }
     }
 
-    pub fn set_color(&mut self, which: PalleteColor, color: ColorStyle) {
+    pub fn set_color(&mut self, which: PaletteColor, color: ColorStyle) {
         match which {
             File => self.file = color,
             FileHigh => self.file_high = color,
