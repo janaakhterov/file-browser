@@ -1,24 +1,11 @@
-use cursive::align::{Align, HAlign, VAlign};
-use cursive::direction::Direction;
-use cursive::event::{Callback, Event, EventResult, Key, MouseButton, MouseEvent};
-use cursive::menu::MenuTree;
-use cursive::rect::Rect;
-use cursive::theme::BaseColor;
-use cursive::theme::Color;
-use cursive::theme::ColorStyle;
-use cursive::utils::markup::StyledString;
+use cursive::align::{Align};
+use cursive::event::{Event, EventResult, Key};
 use cursive::vec::Vec2;
-use cursive::view::{Position, View};
-use cursive::views::MenuPopup;
-use cursive::Cursive;
+use cursive::view::{View};
 use cursive::Printer;
-use cursive::With;
-use failure::err_msg;
 use failure::Error;
-use std::borrow::Borrow;
 use std::cell::Cell;
 use std::cmp;
-use std::cmp::min;
 use std::fs::read_dir;
 use std::path::Path;
 use std::rc::Rc;
@@ -26,10 +13,13 @@ use std::result::Result;
 #[macro_use]
 use crate::print_full_width;
 use crate::palette::Palette;
+use std::os::unix::fs::PermissionsExt;
 
 #[derive(Ord, PartialOrd, Eq, PartialEq)]
 struct Entry {
     name: String,
+    permissions: u32,
+    ext: Option<String>,
     size: usize,
 }
 
@@ -63,30 +53,47 @@ impl DirectoryView {
             .map(Result::unwrap)
         {
             let meta = entry.metadata()?;
+
             let name = match entry.file_name().into_string() {
                 Ok(v) => v,
                 // Err(err) => return err_msg("Failed to read file name"),
                 Err(_) => "failed to load filename".to_string(),
             };
 
-            if meta.is_dir() {
-                let size = read_dir(&Path::new(&entry.path()))?
+            let permissions = meta.permissions().mode();
+
+            let ext = match entry.path().extension() {
+                Some(s) => {
+                    match s.to_str() {
+                        Some(s) => Some(s.to_string()),
+                        None => None,
+                    }
+                },
+                None => None,
+            };
+
+            let size = if meta.is_dir() {
+                read_dir(&Path::new(&entry.path()))?
                     .into_iter()
                     .filter(Result::is_ok)
                     .map(Result::unwrap)
                     .collect::<Vec<_>>()
-                    .len();
-                view.dirs.push(Entry {
-                    name,
-                    size: size as usize,
-                });
+                    .len() as usize
             } else if meta.is_file() {
-                let size = meta.len();
-                view.files.push(Entry {
-                    name,
-                    size: size as usize,
-                });
-            }
+                meta.len() as usize
+            } else {
+                0 as usize
+            };
+
+            match meta.is_dir() {
+                true => &mut view.dirs,
+                false => &mut view.files,
+            }.push(Entry {
+                name,
+                permissions,
+                ext,
+                size,
+            });
         }
 
         view.dirs.sort();

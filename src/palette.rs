@@ -46,12 +46,12 @@ impl Palette {
 
     pub fn set_color(&mut self, which: PaletteColor, color: ColorStyle) {
         match which {
-            File => self.file = color,
-            FileHigh => self.file_high = color,
-            Dir => self.dir = color,
-            DirHigh => self.dir_high = color,
-            Exec => self.exec = color,
-            ExecHigh => self.exec_high = color,
+            PaletteColor::File => self.file = color,
+            PaletteColor::FileHigh => self.file_high = color,
+            PaletteColor::Dir => self.dir = color,
+            PaletteColor::DirHigh => self.dir_high = color,
+            PaletteColor::Exec => self.exec = color,
+            PaletteColor::ExecHigh => self.exec_high = color,
         }
     }
 }
