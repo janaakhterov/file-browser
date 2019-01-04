@@ -3,13 +3,9 @@ use cursive::direction::Direction;
 use cursive::event::{Callback, Event, EventResult, Key, MouseButton, MouseEvent};
 use cursive::menu::MenuTree;
 use cursive::rect::Rect;
-use std::borrow::Borrow;
-use std::cell::Cell;
-use std::cmp::min;
-use std::rc::Rc;
-use cursive::theme::ColorStyle;
 use cursive::theme::BaseColor;
 use cursive::theme::Color;
+use cursive::theme::ColorStyle;
 use cursive::utils::markup::StyledString;
 use cursive::vec::Vec2;
 use cursive::view::{Position, View};
@@ -17,12 +13,16 @@ use cursive::views::MenuPopup;
 use cursive::Cursive;
 use cursive::Printer;
 use cursive::With;
-use failure::Error;
 use failure::err_msg;
+use failure::Error;
+use std::borrow::Borrow;
+use std::cell::Cell;
+use std::cmp;
+use std::cmp::min;
 use std::fs::read_dir;
 use std::path::Path;
+use std::rc::Rc;
 use std::result::Result;
-use std::cmp;
 #[macro_use]
 use crate::print_full_width;
 use crate::palette::Palette;
@@ -59,8 +59,9 @@ impl DirectoryView {
 
         for entry in read_dir(path)?
             .into_iter()
-                .filter(Result::is_ok)
-                .map(Result::unwrap) {
+            .filter(Result::is_ok)
+            .map(Result::unwrap)
+        {
             let meta = entry.metadata()?;
             let name = match entry.file_name().into_string() {
                 Ok(v) => v,
@@ -70,19 +71,19 @@ impl DirectoryView {
 
             if meta.is_dir() {
                 let size = read_dir(&Path::new(&entry.path()))?
-                                         .into_iter()
-                                         .filter(Result::is_ok)
-                                         .map(Result::unwrap)
-                                         .collect::<Vec<_>>()
-                                         .len();
+                    .into_iter()
+                    .filter(Result::is_ok)
+                    .map(Result::unwrap)
+                    .collect::<Vec<_>>()
+                    .len();
                 view.dirs.push(Entry {
-                    name, 
+                    name,
                     size: size as usize,
                 });
             } else if meta.is_file() {
                 let size = meta.len();
                 view.files.push(Entry {
-                    name, 
+                    name,
                     size: size as usize,
                 });
             }
@@ -112,7 +113,7 @@ impl DirectoryView {
 
     pub fn change_focus_by(&mut self, difference: i64) {
         let focus = self.focus.get();
-        let new_focus = if difference > 0 { 
+        let new_focus = if difference > 0 {
             if focus + difference as usize >= self.total_list_size() {
                 (self.total_list_size() - 1) as usize
             } else {
@@ -127,7 +128,6 @@ impl DirectoryView {
     }
 }
 
-
 impl View for DirectoryView {
     fn draw(&self, printer: &Printer) {
         self.last_offset.set(printer.offset);
@@ -140,15 +140,9 @@ impl View for DirectoryView {
             let name = &self.dirs[i].name;
 
             if i == self.focus() {
-                printer.with_color(
-                    self.palette.dir_high,
-                    print_full_width!(name, i),
-                );
+                printer.with_color(self.palette.dir_high, print_full_width!(name, i));
             } else {
-                printer.with_color(
-                    self.palette.dir,
-                    print_full_width!(name, i),
-                );
+                printer.with_color(self.palette.dir, print_full_width!(name, i));
             }
         }
 
@@ -157,15 +151,9 @@ impl View for DirectoryView {
             let pos = i + dirs_len;
 
             if pos == self.focus() {
-                printer.with_color(
-                    self.palette.file_high,
-                    print_full_width!(name, pos),
-                );
+                printer.with_color(self.palette.file_high, print_full_width!(name, pos));
             } else {
-                printer.with_color(
-                    self.palette.file,
-                    print_full_width!(name, pos),
-                );
+                printer.with_color(self.palette.file, print_full_width!(name, pos));
             }
         }
     }
@@ -173,8 +161,9 @@ impl View for DirectoryView {
     fn required_size(&mut self, _: Vec2) -> Vec2 {
         let h = self.dirs.len() + self.files.len();
 
-        let w = { 
-            cmp::max(self.dirs
+        let w = {
+            cmp::max(
+                self.dirs
                     .iter()
                     .map(|dir| dir.name.len())
                     .max()
@@ -183,7 +172,8 @@ impl View for DirectoryView {
                     .iter()
                     .map(|file| file.name.len())
                     .max()
-                    .unwrap_or(1))
+                    .unwrap_or(1),
+            )
         };
 
         Vec2::new(w, h)
@@ -197,12 +187,10 @@ impl View for DirectoryView {
             Event::Key(Key::PageDown) => self.change_focus_by(-10),
             Event::Key(Key::Home) => self.focus.set(0),
             Event::Key(Key::End) => self.focus.set(self.total_list_size() - 1),
-            Event::Char(c) => {
-                match c {
-                    'j' => self.change_focus_by(1),
-                    'k' => self.change_focus_by(-1),
-                    _ => return EventResult::Ignored,
-                }
+            Event::Char(c) => match c {
+                'j' => self.change_focus_by(1),
+                'k' => self.change_focus_by(-1),
+                _ => return EventResult::Ignored,
             },
             _ => return EventResult::Ignored,
         }
@@ -210,4 +198,3 @@ impl View for DirectoryView {
         EventResult::Consumed(None)
     }
 }
-

@@ -1,6 +1,6 @@
-use cursive::theme::ColorStyle;
-use cursive::theme::Color;
 use cursive::theme::BaseColor;
+use cursive::theme::Color;
+use cursive::theme::ColorStyle;
 
 pub enum PaletteColor {
     File,
@@ -22,35 +22,17 @@ pub struct Palette {
 
 impl Palette {
     pub fn new() -> Self {
-        let file = ColorStyle::new(
-            Color::Dark(BaseColor::White),
-            Color::Dark(BaseColor::Black),
-        );
+        let file = ColorStyle::new(Color::Dark(BaseColor::White), Color::Dark(BaseColor::Black));
 
-        let file_high = ColorStyle::new(
-            file.back,
-            file.front,
-        );
+        let file_high = ColorStyle::new(file.back, file.front);
 
-        let dir = ColorStyle::new(
-            Color::Dark(BaseColor::Blue),
-            Color::Dark(BaseColor::Black),
-        );
+        let dir = ColorStyle::new(Color::Dark(BaseColor::Blue), Color::Dark(BaseColor::Black));
 
-        let dir_high = ColorStyle::new(
-            dir.back,
-            dir.front,
-        );
+        let dir_high = ColorStyle::new(dir.back, dir.front);
 
-        let exec = ColorStyle::new(
-            Color::Dark(BaseColor::Green),
-            Color::Dark(BaseColor::Black),
-        );
+        let exec = ColorStyle::new(Color::Dark(BaseColor::Green), Color::Dark(BaseColor::Black));
 
-        let exec_high = ColorStyle::new(
-            exec.back,
-            exec.front,
-        );
+        let exec_high = ColorStyle::new(exec.back, exec.front);
 
         Palette {
             file,
