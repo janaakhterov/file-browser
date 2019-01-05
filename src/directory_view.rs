@@ -12,37 +12,11 @@ use std::rc::Rc;
 use std::result::Result;
 #[macro_use]
 use crate::print_full_width;
-use crate::color_pair::ColorPair;
 use config::Config;
-use std::cmp::Ordering;
+use crate::entry::Entry;
+use crate::color_pair::ColorPair;
 
-struct Entry {
-    name: String,
-    size: usize,
-    color: ColorPair,
-}
-
-impl Ord for Entry {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.name.cmp(&other.name)
-    }
-}
-
-impl PartialEq for Entry {
-    fn eq(&self, other: &Self) -> bool {
-        self.name.eq(&other.name)
-    }
-}
-
-impl Eq for Entry {}
-
-impl PartialOrd for Entry {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-pub struct DirectoryView {
+pub(crate) struct DirectoryView {
     dirs: Vec<Entry>,
     files: Vec<Entry>,
     focus: Rc<Cell<usize>>,

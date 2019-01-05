@@ -8,6 +8,7 @@ use std::result::Result;
 
 mod directory_view;
 mod color_pair;
+mod entry;
 #[macro_use]
 mod macros;
 
