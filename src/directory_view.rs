@@ -12,22 +12,40 @@ use std::rc::Rc;
 use std::result::Result;
 #[macro_use]
 use crate::print_full_width;
-use crate::palette::Palette;
-use std::os::unix::fs::PermissionsExt;
+use crate::color_pair::ColorPair;
+use config::Config;
+use std::cmp::Ordering;
 
-#[derive(Ord, PartialOrd, Eq, PartialEq)]
 struct Entry {
     name: String,
-    permissions: u32,
-    ext: Option<String>,
     size: usize,
+    color: ColorPair,
+}
+
+impl Ord for Entry {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.name.cmp(&other.name)
+    }
+}
+
+impl PartialEq for Entry {
+    fn eq(&self, other: &Self) -> bool {
+        self.name.eq(&other.name)
+    }
+}
+
+impl Eq for Entry {}
+
+impl PartialOrd for Entry {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 pub struct DirectoryView {
     dirs: Vec<Entry>,
     files: Vec<Entry>,
     focus: Rc<Cell<usize>>,
-    palette: Palette,
     align: Align,
     last_offset: Cell<Vec2>,
 }
@@ -38,13 +56,12 @@ impl DirectoryView {
             dirs: Vec::new(),
             files: Vec::new(),
             focus: Rc::new(Cell::new(0)),
-            palette: Palette::new(),
             align: Align::top_left(),
             last_offset: Cell::new(Vec2::zero()),
         }
     }
 
-    pub fn from(path: &Path) -> Result<DirectoryView, Error> {
+    pub fn from(path: &Path, settings: &mut Config) -> Result<DirectoryView, Error> {
         let mut view = DirectoryView::new();
 
         for entry in read_dir(path)?
@@ -52,25 +69,16 @@ impl DirectoryView {
             .filter(Result::is_ok)
             .map(Result::unwrap)
         {
+
+            let name = entry.file_name().into_string();
+            match name {
+                Ok(_) => {},
+                Err(_) => continue,
+            }
+
+            let name = name.unwrap();
+
             let meta = entry.metadata()?;
-
-            let name = match entry.file_name().into_string() {
-                Ok(v) => v,
-                // Err(err) => return err_msg("Failed to read file name"),
-                Err(_) => "failed to load filename".to_string(),
-            };
-
-            let permissions = meta.permissions().mode();
-
-            let ext = match entry.path().extension() {
-                Some(s) => {
-                    match s.to_str() {
-                        Some(s) => Some(s.to_string()),
-                        None => None,
-                    }
-                },
-                None => None,
-            };
 
             let size = if meta.is_dir() {
                 read_dir(&Path::new(&entry.path()))?
@@ -90,9 +98,8 @@ impl DirectoryView {
                 false => &mut view.files,
             }.push(Entry {
                 name,
-                permissions,
-                ext,
                 size,
+                color: ColorPair::new(&entry, settings),
             });
         }
 
@@ -143,24 +150,27 @@ impl View for DirectoryView {
         let printer = &printer.offset((0, offset));
         let dirs_len = self.dirs.len();
 
+        // TODO: Use match statement for i == self.focus() to better inline code
         for i in 0..dirs_len {
             let name = &self.dirs[i].name;
+            let color = &self.dirs[i].color;
 
             if i == self.focus() {
-                printer.with_color(self.palette.dir_high, print_full_width!(name, i));
+                printer.with_color(color.highlight, print_full_width!(name, i));
             } else {
-                printer.with_color(self.palette.dir, print_full_width!(name, i));
+                printer.with_color(color.regular, print_full_width!(name, i));
             }
         }
 
         for i in 0..self.files.len() {
             let name = &self.files[i].name;
+            let color = &self.files[i].color;
             let pos = i + dirs_len;
 
             if pos == self.focus() {
-                printer.with_color(self.palette.file_high, print_full_width!(name, pos));
+                printer.with_color(color.highlight, print_full_width!(name, pos));
             } else {
-                printer.with_color(self.palette.file, print_full_width!(name, pos));
+                printer.with_color(color.regular, print_full_width!(name, pos));
             }
         }
     }
