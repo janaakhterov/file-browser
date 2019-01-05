@@ -1,20 +1,16 @@
-use cursive::align::{Align};
-use cursive::event::{Event, EventResult, Key};
-use cursive::vec::Vec2;
-use cursive::view::{View};
-use cursive::Printer;
+use cursive::{
+    align::Align,
+    event::{Event, EventResult, Key},
+    vec::Vec2,
+    view::View,
+    Printer,
+};
 use failure::Error;
-use std::cell::Cell;
-use std::cmp;
-use std::fs::read_dir;
-use std::path::Path;
-use std::rc::Rc;
-use std::result::Result;
+use std::{cell::Cell, cmp, fs::read_dir, path::Path, rc::Rc, result::Result};
 #[macro_use]
 use crate::print_full_width;
+use crate::{color_pair::ColorPair, entry::Entry};
 use config::Config;
-use crate::entry::Entry;
-use crate::color_pair::ColorPair;
 
 pub(crate) struct DirectoryView {
     dirs: Vec<Entry>,
@@ -43,10 +39,9 @@ impl DirectoryView {
             .filter(Result::is_ok)
             .map(Result::unwrap)
         {
-
             let name = entry.file_name().into_string();
             match name {
-                Ok(_) => {},
+                Ok(_) => {}
                 Err(_) => continue,
             }
 
@@ -70,7 +65,8 @@ impl DirectoryView {
             match meta.is_dir() {
                 true => &mut view.dirs,
                 false => &mut view.files,
-            }.push(Entry {
+            }
+            .push(Entry {
                 name,
                 size,
                 color: ColorPair::new(&entry, settings),

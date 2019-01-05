@@ -1,5 +1,5 @@
-use std::cmp::Ordering;
 use crate::color_pair::ColorPair;
+use std::cmp::Ordering;
 
 pub(crate) struct Entry {
     pub(crate) name: String,
@@ -26,4 +26,3 @@ impl PartialOrd for Entry {
         Some(self.cmp(other))
     }
 }
-
