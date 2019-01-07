@@ -79,26 +79,6 @@ impl DirectoryView {
         Ok(view)
     }
 
-    pub fn focus_up(&mut self) {
-        if self.focus() > 0 {
-            self.focus.set(self.focus.get().saturating_sub(1))
-        }
-    }
-
-    pub fn focus_down(&mut self) {
-        if self.focus() < (self.total_list_size() - 1) {
-            self.focus.set(self.focus.get().saturating_add(1))
-        }
-    }
-
-    pub fn focus_first(&mut self) {
-        self.focus.set(0);
-    }
-
-    pub fn focus_last(&mut self) {
-        self.focus.set(self.total_list_size() - 1)
-    }
-
     pub fn focus(&self) -> usize {
         self.focus.get()
     }
@@ -131,7 +111,7 @@ impl View for DirectoryView {
         let printer = &printer.offset((0, offset));
         let focus = self.focus();
 
-        // Which element should we start at to make sure the focused elemtn
+        // Which element should we start at to make sure the focused element
         // is in view.
         let start = if self.last_offset.get() > focus {
             focus
@@ -152,11 +132,13 @@ impl View for DirectoryView {
             if element < self.dirs.len() {
                 let name = &self.dirs[element].name;
                 let color = &self.dirs[element].color;
-                print_full_width_with_selection!(printer, element, focus, color, name, i);
+                let size = &self.dirs[element].size.to_string();
+                print_full_width_with_selection!(printer, element, focus, name, size, color, i);
             } else if element - self.dirs.len() < self.files.len() {
                 let name = &self.files[element - self.dirs.len()].name;
                 let color = &self.files[element - self.dirs.len()].color;
-                print_full_width_with_selection!(printer, element, focus, color, name, i);
+                let size = &self.files[element - self.dirs.len()].size.to_string();
+                print_full_width_with_selection!(printer, element, focus, name, size, color, i);
             }
         }
     }
@@ -184,15 +166,15 @@ impl View for DirectoryView {
 
     fn on_event(&mut self, event: Event) -> EventResult {
         match event {
-            Event::Key(Key::Up) => self.focus_down(),
-            Event::Key(Key::Down) => self.focus_up(),
-            // Event::Key(Key::PageUp) => self.change_focus_by(10),
-            // Event::Key(Key::PageDown) => self.change_focus_by(-10),
+            Event::Key(Key::Up) => self.change_focus_by(-1),
+            Event::Key(Key::Down) => self.change_focus_by(1),
+            Event::Key(Key::PageUp) => self.change_focus_by(-10),
+            Event::Key(Key::PageDown) => self.change_focus_by(10),
             Event::Key(Key::Home) => self.focus.set(0),
             Event::Key(Key::End) => self.focus.set(self.total_list_size() - 1),
             Event::Char(c) => match c {
-                'j' => self.focus_down(),
-                'k' => self.focus_up(),
+                'j' => self.change_focus_by(1),
+                'k' => self.change_focus_by(-1),
                 _ => return EventResult::Ignored,
             },
             _ => return EventResult::Ignored,
