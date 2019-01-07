@@ -19,7 +19,12 @@ impl Default for ColorPair {
 impl ColorPair {
     pub fn new(entry: &DirEntry, settings: &mut Config) -> ColorPair {
         let meta = entry.metadata().unwrap();
-        if meta.is_dir() {
+        let filetype = match entry.file_type() {
+            Ok(filetype) => filetype,
+            Err(_) => return ColorPair::default(),
+        };
+
+        if filetype.is_dir() {
             return ColorPair {
                 regular: ColorStyle::new(
                     Color::Dark(BaseColor::Blue),
@@ -30,7 +35,7 @@ impl ColorPair {
                     Color::Dark(BaseColor::Blue),
                 ),
             };
-        } else if meta.is_file() {
+        } else if filetype.is_file() {
             if meta.permissions().mode().bitand(1) == 1 {
                 return ColorPair {
                     regular: ColorStyle::new(
@@ -73,6 +78,17 @@ impl ColorPair {
                 highlight: ColorStyle::new(
                     Color::Dark(BaseColor::Black),
                     Color::Dark(BaseColor::White),
+                ),
+            };
+        } else if filetype.is_symlink() {
+            return ColorPair {
+                regular: ColorStyle::new(
+                    Color::Dark(BaseColor::Cyan),
+                    Color::Dark(BaseColor::Black),
+                ),
+                highlight: ColorStyle::new(
+                    Color::Dark(BaseColor::Black),
+                    Color::Dark(BaseColor::Cyan),
                 ),
             };
         } else {

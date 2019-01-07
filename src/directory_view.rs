@@ -9,8 +9,7 @@ use failure::Error;
 use std::{cell::Cell, cmp, fs::read_dir, path::Path, rc::Rc, result::Result};
 #[macro_use]
 use crate::print_full_width_with_selection;
-use crate::print_full_width;
-use crate::{color_pair::ColorPair, entry::Entry};
+use crate::{color_pair::ColorPair, entry::Entry, print_full_width};
 use config::Config;
 
 pub(crate) struct DirectoryView {
