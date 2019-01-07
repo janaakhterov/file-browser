@@ -17,7 +17,7 @@ pub(crate) struct DirectoryView {
     files: Vec<Entry>,
     focus: Rc<Cell<usize>>,
     align: Align,
-    last_offset: Cell<Vec2>,
+    last_offset: Cell<usize>,
 }
 
 impl DirectoryView {
@@ -27,7 +27,7 @@ impl DirectoryView {
             files: Vec::new(),
             focus: Rc::new(Cell::new(0)),
             align: Align::top_left(),
-            last_offset: Cell::new(Vec2::zero()),
+            last_offset: Cell::new(0 as usize),
         }
     }
 
@@ -79,6 +79,18 @@ impl DirectoryView {
         Ok(view)
     }
 
+    pub fn focus_up(&mut self) {
+        if self.focus() > 0 {
+            self.focus.set(self.focus.get().saturating_sub(1))
+        }
+    }
+
+    pub fn focus_down(&mut self) {
+        if self.focus() < (self.total_list_size() - 1) {
+            self.focus.set(self.focus.get().saturating_add(1))
+        }
+    }
+
     pub fn focus_first(&mut self) {
         self.focus.set(0);
     }
@@ -89,10 +101,6 @@ impl DirectoryView {
 
     pub fn focus(&self) -> usize {
         self.focus.get()
-    }
-
-    pub fn total_list_size(&self) -> usize {
-        self.dirs.len() + self.files.len()
     }
 
     pub fn change_focus_by(&mut self, difference: i64) {
@@ -110,37 +118,50 @@ impl DirectoryView {
         };
         self.focus.set(new_focus);
     }
+
+    pub fn total_list_size(&self) -> usize {
+        self.dirs.len() + self.files.len()
+    }
 }
 
 impl View for DirectoryView {
     fn draw(&self, printer: &Printer) {
-        self.last_offset.set(printer.offset);
         let h = self.dirs.len() + self.files.len();
         let offset = self.align.v.get_offset(h, printer.size.y);
         let printer = &printer.offset((0, offset));
         let dirs_len = self.dirs.len();
+        let focus = self.focus();
 
-        // TODO: Use match statement for i == self.focus() to better inline code
-        for i in 0..dirs_len {
-            let name = &self.dirs[i].name;
-            let color = &self.dirs[i].color;
+        let start = if self.last_offset.get() > focus {
+            focus
+        } else if self.last_offset.get() + printer.size.y - 1 < focus {
+            focus - printer.size.y + 1
+        } else {
+            self.last_offset.get()
+        };
 
-            if i == self.focus() {
-                printer.with_color(color.highlight, print_full_width!(name, i));
-            } else {
-                printer.with_color(color.regular, print_full_width!(name, i));
-            }
-        }
+        self.last_offset.set(start);
 
-        for i in 0..self.files.len() {
-            let name = &self.files[i].name;
-            let color = &self.files[i].color;
-            let pos = i + dirs_len;
+        for i in 0..printer.size.y {
+            let element = i + start;
+            if element < self.dirs.len() {
+                let name = &self.dirs[element].name;
+                let color = &self.dirs[element].color;
 
-            if pos == self.focus() {
-                printer.with_color(color.highlight, print_full_width!(name, pos));
-            } else {
-                printer.with_color(color.regular, print_full_width!(name, pos));
+                if element == self.focus() {
+                    printer.with_color(color.highlight, print_full_width!(name, i));
+                } else {
+                    printer.with_color(color.regular, print_full_width!(name, i));
+                }
+            } else if element < h {
+                let name = &self.files[element].name;
+                let color = &self.files[element].color;
+
+                if element == self.focus() {
+                    printer.with_color(color.highlight, print_full_width!(name, i));
+                } else {
+                    printer.with_color(color.regular, print_full_width!(name, i));
+                }
             }
         }
     }
@@ -168,15 +189,15 @@ impl View for DirectoryView {
 
     fn on_event(&mut self, event: Event) -> EventResult {
         match event {
-            Event::Key(Key::Up) => self.change_focus_by(1),
-            Event::Key(Key::Down) => self.change_focus_by(-1),
-            Event::Key(Key::PageUp) => self.change_focus_by(10),
-            Event::Key(Key::PageDown) => self.change_focus_by(-10),
+            Event::Key(Key::Up) => self.focus_down(),
+            Event::Key(Key::Down) => self.focus_up(),
+            // Event::Key(Key::PageUp) => self.change_focus_by(10),
+            // Event::Key(Key::PageDown) => self.change_focus_by(-10),
             Event::Key(Key::Home) => self.focus.set(0),
             Event::Key(Key::End) => self.focus.set(self.total_list_size() - 1),
             Event::Char(c) => match c {
-                'j' => self.change_focus_by(1),
-                'k' => self.change_focus_by(-1),
+                'j' => self.focus_down(),
+                'k' => self.focus_up(),
                 _ => return EventResult::Ignored,
             },
             _ => return EventResult::Ignored,
