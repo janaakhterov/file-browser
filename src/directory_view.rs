@@ -140,6 +140,12 @@ impl View for DirectoryView {
             self.last_offset.get()
         };
 
+        let end = if self.dirs.len() + self.files.len() < printer.size.y - 1 {
+            self.dirs.len() + self.files.len() + 1
+        } else {
+            printer.size.y
+        };
+
         self.last_offset.set(start);
 
         for i in 0..printer.size.y {
@@ -153,9 +159,9 @@ impl View for DirectoryView {
                 } else {
                     printer.with_color(color.regular, print_full_width!(name, i));
                 }
-            } else if element < h {
-                let name = &self.files[element].name;
-                let color = &self.files[element].color;
+            } else if element - self.dirs.len() < self.files.len() {
+                let name = &self.files[element - self.dirs.len()].name;
+                let color = &self.files[element - self.dirs.len()].color;
 
                 if element == self.focus() {
                     printer.with_color(color.highlight, print_full_width!(name, i));
