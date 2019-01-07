@@ -126,12 +126,13 @@ impl DirectoryView {
 
 impl View for DirectoryView {
     fn draw(&self, printer: &Printer) {
-        let h = self.dirs.len() + self.files.len();
-        let offset = self.align.v.get_offset(h, printer.size.y);
+        let height = self.dirs.len() + self.files.len();
+        let offset = self.align.v.get_offset(height, printer.size.y);
         let printer = &printer.offset((0, offset));
-        let dirs_len = self.dirs.len();
         let focus = self.focus();
 
+        // Which element should we start at to make sure the focused elemtn
+        // is in view.
         let start = if self.last_offset.get() > focus {
             focus
         } else if self.last_offset.get() + printer.size.y - 1 < focus {
@@ -140,14 +141,11 @@ impl View for DirectoryView {
             self.last_offset.get()
         };
 
-        let end = if self.dirs.len() + self.files.len() < printer.size.y - 1 {
-            self.dirs.len() + self.files.len() + 1
-        } else {
-            printer.size.y
-        };
-
         self.last_offset.set(start);
 
+        // Loop through all the lines in the printer
+        // Either print a file at the current line or a directory
+        // Based on the current focus
         for i in 0..printer.size.y {
             let element = i + start;
             if element < self.dirs.len() {
