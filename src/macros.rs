@@ -7,3 +7,18 @@ macro_rules! print_full_width(
         }
     }}
 );
+
+#[macro_export]
+macro_rules! print_full_width_with_selection(
+    ($printer:ident, $element:ident, $focus:ident, $color:ident, $name:ident, $pos:ident) => {{
+        if $element == $focus {
+            $printer.with_color(
+                $color.highlight,
+                print_full_width!($name, $pos));
+        } else {
+            $printer.with_color(
+                $color.regular,
+                print_full_width!($name, $pos));
+        }
+    }}
+);

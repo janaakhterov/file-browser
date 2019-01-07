@@ -8,6 +8,7 @@ use cursive::{
 use failure::Error;
 use std::{cell::Cell, cmp, fs::read_dir, path::Path, rc::Rc, result::Result};
 #[macro_use]
+use crate::print_full_width_with_selection;
 use crate::print_full_width;
 use crate::{color_pair::ColorPair, entry::Entry};
 use config::Config;
@@ -141,6 +142,7 @@ impl View for DirectoryView {
             self.last_offset.get()
         };
 
+        // Set the current start as the next offset
         self.last_offset.set(start);
 
         // Loop through all the lines in the printer
@@ -151,21 +153,11 @@ impl View for DirectoryView {
             if element < self.dirs.len() {
                 let name = &self.dirs[element].name;
                 let color = &self.dirs[element].color;
-
-                if element == self.focus() {
-                    printer.with_color(color.highlight, print_full_width!(name, i));
-                } else {
-                    printer.with_color(color.regular, print_full_width!(name, i));
-                }
+                print_full_width_with_selection!(printer, element, focus, color, name, i);
             } else if element - self.dirs.len() < self.files.len() {
                 let name = &self.files[element - self.dirs.len()].name;
                 let color = &self.files[element - self.dirs.len()].color;
-
-                if element == self.focus() {
-                    printer.with_color(color.highlight, print_full_width!(name, i));
-                } else {
-                    printer.with_color(color.regular, print_full_width!(name, i));
-                }
+                print_full_width_with_selection!(printer, element, focus, color, name, i);
             }
         }
     }
