@@ -12,6 +12,9 @@ use crate::print_full_width_with_selection;
 use crate::{color_pair::ColorPair, entry::Entry, print_full_width};
 use config::Config;
 use number_prefix::{binary_prefix, Standalone, Prefixed};
+use std::fs::symlink_metadata;
+use std::fs::read_link;
+use std::path::PathBuf;
 
 pub(crate) struct DirectoryView {
     dirs: Vec<Entry>,
@@ -32,6 +35,26 @@ impl DirectoryView {
         }
     }
 
+    fn size(entry: PathBuf) -> Result<usize, Error> {
+            let meta = entry.metadata()?;
+            let filetype = meta.file_type();
+
+            if filetype.is_dir() {
+                Ok(read_dir(entry)?
+                    .into_iter()
+                    .filter(Result::is_ok)
+                    .map(Result::unwrap)
+                    .collect::<Vec<_>>()
+                    .len() as usize)
+            } else if filetype.is_file() {
+                Ok(meta.len() as usize)
+            } else if filetype.is_symlink() {
+                Ok(DirectoryView::size(read_link(entry)?)?)
+            } else {
+                Ok(0 as usize)
+            }
+    }
+
     pub fn from(path: &Path, settings: &mut Config) -> Result<DirectoryView, Error> {
         let mut view = DirectoryView::new();
 
@@ -47,21 +70,9 @@ impl DirectoryView {
             }
 
             let name = name.unwrap();
-
             let meta = entry.metadata()?;
 
-            let size = if meta.is_dir() {
-                read_dir(&Path::new(&entry.path()))?
-                    .into_iter()
-                    .filter(Result::is_ok)
-                    .map(Result::unwrap)
-                    .collect::<Vec<_>>()
-                    .len() as usize
-            } else if meta.is_file() {
-                meta.len() as usize
-            } else {
-                0 as usize
-            };
+            let size = DirectoryView::size(entry.path())?;
 
             match meta.is_dir() {
                 true => &mut view.dirs,
