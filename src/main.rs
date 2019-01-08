@@ -24,10 +24,7 @@ fn main() -> Result<(), Error> {
 
     siv.load_theme_file("styles.toml").unwrap();
 
-    let dirs_view = BoxView::with_full_screen(DirectoryView::from(
-        Path::new("/bin"),
-        settings,
-    )?);
+    let dirs_view = BoxView::with_full_screen(DirectoryView::from(Path::new("/bin"), settings)?);
 
     siv.add_fullscreen_layer(dirs_view);
     siv.add_global_callback('q', |s| s.quit());

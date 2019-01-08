@@ -11,10 +11,8 @@ use std::{cell::Cell, cmp, fs::read_dir, path::Path, rc::Rc, result::Result};
 use crate::print_full_width_with_selection;
 use crate::{color_pair::ColorPair, entry::Entry, print_full_width};
 use config::Config;
-use number_prefix::{binary_prefix, Standalone, Prefixed};
-use std::fs::symlink_metadata;
-use std::fs::read_link;
-use std::path::PathBuf;
+use number_prefix::{binary_prefix, Prefixed, Standalone};
+use std::{fs::read_link, path::PathBuf};
 
 pub(crate) struct DirectoryView {
     dirs: Vec<Entry>,
@@ -36,23 +34,23 @@ impl DirectoryView {
     }
 
     fn size(entry: PathBuf) -> Result<usize, Error> {
-            let meta = entry.metadata()?;
-            let filetype = meta.file_type();
+        let meta = entry.metadata()?;
+        let filetype = meta.file_type();
 
-            if filetype.is_dir() {
-                Ok(read_dir(entry)?
-                    .into_iter()
-                    .filter(Result::is_ok)
-                    .map(Result::unwrap)
-                    .collect::<Vec<_>>()
-                    .len() as usize)
-            } else if filetype.is_file() {
-                Ok(meta.len() as usize)
-            } else if filetype.is_symlink() {
-                Ok(DirectoryView::size(read_link(entry)?)?)
-            } else {
-                Ok(0 as usize)
-            }
+        if filetype.is_dir() {
+            Ok(read_dir(entry)?
+                .into_iter()
+                .filter(Result::is_ok)
+                .map(Result::unwrap)
+                .collect::<Vec<_>>()
+                .len() as usize)
+        } else if filetype.is_file() {
+            Ok(meta.len() as usize)
+        } else if filetype.is_symlink() {
+            Ok(DirectoryView::size(read_link(entry)?)?)
+        } else {
+            Ok(0 as usize)
+        }
     }
 
     pub fn from(path: &Path, settings: &mut Config) -> Result<DirectoryView, Error> {
@@ -64,9 +62,8 @@ impl DirectoryView {
             .map(Result::unwrap)
         {
             let name = entry.file_name().into_string();
-            match name {
-                Ok(_) => {}
-                Err(_) => continue,
+            if name.is_err() {
+                continue;
             }
 
             let name = name.unwrap();
@@ -149,10 +146,11 @@ impl View for DirectoryView {
             } else if element - self.dirs.len() < self.files.len() {
                 let name = &self.files[element - self.dirs.len()].name;
                 let color = &self.files[element - self.dirs.len()].color;
-                let size: String = match binary_prefix(*&self.files[element - self.dirs.len()].size as f64) {
-                    Standalone(bytes) => { format!("{} B", bytes) },
-                    Prefixed(prefix, n) => { format!("{:.0} {}B", n, prefix) },
-                };
+                let size: String =
+                    match binary_prefix(*&self.files[element - self.dirs.len()].size as f64) {
+                        Standalone(bytes) => format!("{} B", bytes),
+                        Prefixed(prefix, n) => format!("{:.0} {}B", n, prefix),
+                    };
                 print_full_width_with_selection!(printer, element, focus, name, size, color, i);
             }
         }
