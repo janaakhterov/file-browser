@@ -1,4 +1,6 @@
 {
     "show_hidden": false,
-    "conf": "yellow"
+    "ext": {
+        "conf": "yellow"
+    }
 }

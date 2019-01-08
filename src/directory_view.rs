@@ -71,6 +71,8 @@ impl DirectoryView {
 
             let size = DirectoryView::size(entry.path())?;
 
+            let color = ColorPair::new(&entry, settings).unwrap_or_else(|_| ColorPair::default());
+
             match meta.is_dir() {
                 true => &mut view.dirs,
                 false => &mut view.files,
@@ -78,7 +80,7 @@ impl DirectoryView {
             .push(Entry {
                 name,
                 size,
-                color: ColorPair::new(&entry, settings),
+                color,
             });
         }
 
