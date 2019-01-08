@@ -11,6 +11,7 @@ use std::{cell::Cell, cmp, fs::read_dir, path::Path, rc::Rc, result::Result};
 use crate::print_full_width_with_selection;
 use crate::{color_pair::ColorPair, entry::Entry, print_full_width};
 use config::Config;
+use number_prefix::{binary_prefix, Standalone, Prefixed};
 
 pub(crate) struct DirectoryView {
     dirs: Vec<Entry>,
@@ -137,7 +138,10 @@ impl View for DirectoryView {
             } else if element - self.dirs.len() < self.files.len() {
                 let name = &self.files[element - self.dirs.len()].name;
                 let color = &self.files[element - self.dirs.len()].color;
-                let size = &self.files[element - self.dirs.len()].size.to_string();
+                let size: String = match binary_prefix(*&self.files[element - self.dirs.len()].size as f64) {
+                    Standalone(bytes) => { format!("{} B", bytes) },
+                    Prefixed(prefix, n) => { format!("{:.0} {}B", n, prefix) },
+                };
                 print_full_width_with_selection!(printer, element, focus, name, size, color, i);
             }
         }
