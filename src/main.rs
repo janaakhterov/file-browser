@@ -21,18 +21,15 @@ fn main() -> Result<(), Error> {
         }
     };
 
-    // let color = settings.get::<HashMap<String, String>>("ext")?;
-    // let color = color.get(&"conf".to_string());
-    // println!("{:?}", color);
-
     let mut siv = Cursive::ncurses();
 
     siv.load_theme_file("styles.toml").unwrap();
 
-    let dirs_view = BoxView::with_full_screen(DirectoryView::from(Path::new("/home/daniel/Config"), settings)?);
+    let dirs_view = BoxView::with_full_screen(DirectoryView::from(Path::new("/bin"), settings)?);
 
     siv.add_fullscreen_layer(dirs_view);
     siv.add_global_callback('q', |s| s.quit());
     siv.run();
+
     Ok(())
 }

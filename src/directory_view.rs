@@ -68,8 +68,24 @@ impl DirectoryView {
 
             let name = name.unwrap();
             let meta = entry.metadata()?;
-
+            let filetype = meta.file_type();
+            
             let size = DirectoryView::size(entry.path())?;
+
+            let size = if !filetype.is_dir() {
+                match binary_prefix(size as f64) {
+                    Standalone(bytes) => format!("{} B", bytes),
+                    Prefixed(prefix, n) => format!("{:.0} {}B", n, prefix),
+                }
+            } else {
+                size.to_string()
+            };
+
+            let size = if filetype.is_symlink() {
+                format!("-> {}", size)
+            } else {
+                size
+            };
 
             let color = ColorPair::new(&entry, settings).unwrap_or_else(|_| ColorPair::default());
 
@@ -143,16 +159,12 @@ impl View for DirectoryView {
             if element < self.dirs.len() {
                 let name = &self.dirs[element].name;
                 let color = &self.dirs[element].color;
-                let size = &self.dirs[element].size.to_string();
+                let size = &self.dirs[element].size;
                 print_full_width_with_selection!(printer, element, focus, name, size, color, i);
             } else if element - self.dirs.len() < self.files.len() {
                 let name = &self.files[element - self.dirs.len()].name;
                 let color = &self.files[element - self.dirs.len()].color;
-                let size: String =
-                    match binary_prefix(*&self.files[element - self.dirs.len()].size as f64) {
-                        Standalone(bytes) => format!("{} B", bytes),
-                        Prefixed(prefix, n) => format!("{:.0} {}B", n, prefix),
-                    };
+                let size = &self.files[element - self.dirs.len()].size;
                 print_full_width_with_selection!(printer, element, focus, name, size, color, i);
             }
         }

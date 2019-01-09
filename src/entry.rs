@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 
 pub(crate) struct Entry {
     pub(crate) name: String,
-    pub(crate) size: usize,
+    pub(crate) size: String,
     pub(crate) color: ColorPair,
 }
 
