@@ -17,10 +17,13 @@ mod macros;
 lazy_static! {
     static ref SETTINGS: Mutex<Config> = {
         let mut config = Config::new();
+
+        // TODO: Print error, but don't quit app
         match config.merge(config::File::with_name("settings.json")) {
             Ok(_) => {}
             Err(_) => {}
         }
+
         Mutex::new(config)
     };
 }
