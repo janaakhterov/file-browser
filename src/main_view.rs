@@ -6,7 +6,7 @@ use cursive::{
     Printer,
 };
 use crate::DirectoryView;
-use std::path::Path;
+use std::path::PathBuf;
 use failure::Error;
 use std::convert::TryFrom;
 
@@ -14,10 +14,38 @@ pub(crate) struct MainView {
     main: DirectoryView,
 }
 
-impl TryFrom<&Path> for MainView {
+impl MainView {
+    pub(crate) fn enter_dir(&mut self) {
+        let focus = self.main.focus();
+        if focus >= self.main.dirs.len() {
+            return;
+        }
+        let path = self.main.dirs[focus].path.clone();
+        let view = DirectoryView::try_from(path);
+        if view.is_ok() {
+            self.main = view.unwrap();
+        }
+    }
+
+    pub(crate) fn leave_dir(&mut self) {
+        let path = self.main.path.parent();
+        if path.is_none() {
+            return;
+        }
+        let path = path.unwrap();
+
+        let view = DirectoryView::try_from(path.to_path_buf());
+        if view.is_ok() {
+            let view = view.unwrap();
+            self.main = view;
+        }
+    }
+}
+
+impl TryFrom<PathBuf> for MainView {
     type Error = Error;
 
-    fn try_from(path: &Path) -> Result<Self, Self::Error> {
+    fn try_from(path: PathBuf) -> Result<Self, Self::Error> {
         let main = DirectoryView::try_from(path)?;
 
         Ok(MainView {
@@ -39,12 +67,13 @@ impl View for MainView {
         match event {
             Event::Char(c) => match c {
                 'l' => {
-                    let view = self.main.enter_dir();
-                    if view.is_ok() {
-                        self.main = view.unwrap();
-                    }
+                    self.enter_dir();
                     EventResult::Consumed(None)
                 },
+                'h' => {
+                    self.leave_dir();
+                    EventResult::Consumed(None)
+                }
                 _ => self.main.on_event(event)
             },
             _ => self.main.on_event(event)

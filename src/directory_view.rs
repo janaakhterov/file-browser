@@ -16,16 +16,18 @@ use std::convert::TryFrom;
 use failure::bail;
 
 pub(crate) struct DirectoryView {
-    dirs: Vec<Entry>,
-    files: Vec<Entry>,
+    pub(crate) path: PathBuf,
+    pub(crate) dirs: Vec<Entry>,
+    pub(crate) files: Vec<Entry>,
     focus: Rc<Cell<usize>>,
     align: Align,
     last_offset: Cell<usize>,
 }
 
 impl DirectoryView {
-    fn new() -> Self {
+    fn new(path: PathBuf) -> Self {
         DirectoryView {
+            path,
             dirs: Vec::new(),
             files: Vec::new(),
             focus: Rc::new(Cell::new(0)),
@@ -77,27 +79,15 @@ impl DirectoryView {
     pub(crate) fn total_list_size(&self) -> usize {
         self.dirs.len() + self.files.len()
     }
-
-    pub(crate) fn enter_dir(&mut self) -> Result<DirectoryView, Error> {
-        let focus = self.focus();
-
-        if focus >= self.dirs.len() {
-            bail!("Focused isn't a directory");
-        }
-
-        let path = self.dirs[focus].path.as_path();
-
-        Ok(DirectoryView::try_from(path)?)
-    }
 }
 
-impl TryFrom<&Path> for DirectoryView {
+impl TryFrom<PathBuf> for DirectoryView {
     type Error = Error;
 
-    fn try_from(path: &Path) -> Result<Self, Self::Error> {
-        let mut view = DirectoryView::new();
+    fn try_from(path: PathBuf) -> Result<Self, Self::Error> {
+        let mut view = DirectoryView::new(path.clone());
 
-        for entry in read_dir(path)?
+        for entry in read_dir(path.as_path())?
             .into_iter()
             .filter(Result::is_ok)
             .map(Result::unwrap)
