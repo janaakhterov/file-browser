@@ -2,9 +2,18 @@
 macro_rules! print_full_width(
     ($name:ident, $size:ident, $pos:expr) => {{
         |printer| {
-            printer.print((0, $pos), &$name);
-            printer.print_hline(($name.len(), $pos), printer.size.x - $name.len() - $size.len(), &" ");
-            printer.print((printer.size.x - $size.len(), $pos), &$size);
+            if $name.len() < printer.size.x {
+                printer.print((0, $pos), &$name);
+                if $name.len() + $size.len() < printer.size.x {
+                    printer.print_hline(($name.len(), $pos), printer.size.x - $name.len() - $size.len(), &" ");
+                    printer.print((printer.size.x - $size.len(), $pos), &$size);
+                } else {
+                    printer.print_hline(($name.len(), $pos), printer.size.x - $name.len(), &" ");
+                }
+            } else {
+                printer.print((0, $pos), &$name[0..printer.size.x]);
+            }
+
         }
     }}
 );

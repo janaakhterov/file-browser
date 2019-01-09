@@ -59,6 +59,7 @@ impl TryFrom<PathBuf> for MainView {
 
 impl View for MainView {
     fn draw(&self, printer: &Printer) {
+        // let printer = &printer.inner_size((30, 10));
         self.main.draw(printer);
     }
 
