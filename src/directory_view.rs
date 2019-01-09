@@ -36,6 +36,20 @@ impl DirectoryView {
         }
     }
 
+    pub(crate) fn focus_path(&mut self, path: PathBuf) {
+        for (i, entry) in self.dirs.iter().enumerate() {
+            if entry.path == path {
+                self.focus.set(i);
+            }
+        }
+
+        for (i, entry) in self.files.iter().enumerate() {
+            if entry.path == path {
+                self.focus.set(i + self.dirs.len());
+            }
+        }
+    }
+
     fn size(entry: PathBuf) -> String {
         let meta = match entry.metadata() {
             Ok(meta) => meta,

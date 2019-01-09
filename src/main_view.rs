@@ -28,14 +28,18 @@ impl MainView {
     }
 
     pub(crate) fn leave_dir(&mut self) {
-        let path = self.main.path.parent();
-        if path.is_none() {
+        let path = self.main.path.clone();
+        let parent = path.parent();
+        if parent.is_none() {
             panic!("No PARENT");
         }
-        let path = path.unwrap();
+        let parent = parent.unwrap();
 
-        match DirectoryView::try_from(path.to_path_buf()) {
-            Ok(view) => self.main = view,
+        match DirectoryView::try_from(parent.to_path_buf()) {
+            Ok(view) => {
+                self.main = view;
+                self.main.focus_path(path);
+            },
             Err(_) => {},
         }
     }
