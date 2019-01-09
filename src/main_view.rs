@@ -31,7 +31,7 @@ impl MainView {
         let path = self.main.path.clone();
         let parent = path.parent();
         if parent.is_none() {
-            panic!("No PARENT");
+            return;
         }
         let parent = parent.unwrap();
 
