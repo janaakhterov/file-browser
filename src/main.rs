@@ -12,6 +12,7 @@ use crate::main_view::MainView;
 use std::convert::TryFrom;
 use gag::Redirect;
 use std::fs::File;
+use std::env::current_dir;
 
 mod color_pair;
 mod directory_view;
@@ -42,7 +43,7 @@ fn main() -> Result<(), Error> {
     siv.load_theme_file("styles.toml").unwrap();
 
     let dirs_view =
-        BoxView::with_full_screen(MainView::try_from(PathBuf::from("/"))?);
+        BoxView::with_full_screen(MainView::try_from(current_dir()?)?);
 
     siv.add_fullscreen_layer(dirs_view);
     siv.add_global_callback('q', |s| s.quit());
