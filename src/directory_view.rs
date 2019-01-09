@@ -10,7 +10,6 @@ use std::{cell::Cell, cmp, fs::read_dir, path::Path, rc::Rc, result::Result};
 #[macro_use]
 use crate::print_full_width_with_selection;
 use crate::{color_pair::ColorPair, entry::Entry, print_full_width};
-use config::Config;
 use number_prefix::{binary_prefix, Prefixed, Standalone};
 use std::{fs::read_link, path::PathBuf};
 
@@ -53,7 +52,7 @@ impl DirectoryView {
         }
     }
 
-    pub fn from(path: &Path, settings: &mut Config) -> Result<DirectoryView, Error> {
+    pub fn from(path: &Path) -> Result<DirectoryView, Error> {
         let mut view = DirectoryView::new();
 
         for entry in read_dir(path)?
@@ -61,6 +60,8 @@ impl DirectoryView {
             .filter(Result::is_ok)
             .map(Result::unwrap)
         {
+            let path = entry.path();
+
             let name = entry.file_name().into_string();
             if name.is_err() {
                 continue;
@@ -69,7 +70,7 @@ impl DirectoryView {
             let name = name.unwrap();
             let meta = entry.metadata()?;
             let filetype = meta.file_type();
-            
+
             let size = DirectoryView::size(entry.path())?;
 
             let size = if !filetype.is_dir() {
@@ -87,13 +88,14 @@ impl DirectoryView {
                 size
             };
 
-            let color = ColorPair::new(&entry, settings).unwrap_or_else(|_| ColorPair::default());
+            let color = ColorPair::new(&entry).unwrap_or_else(|_| ColorPair::default());
 
             match meta.is_dir() {
                 true => &mut view.dirs,
                 false => &mut view.files,
             }
             .push(Entry {
+                path,
                 name,
                 size,
                 color,
@@ -129,6 +131,16 @@ impl DirectoryView {
     pub fn total_list_size(&self) -> usize {
         self.dirs.len() + self.files.len()
     }
+
+    // fn enter_dir(&mut self) {
+    //     let focus = self.focus();
+
+    //     if focus >= self.dirs.len() {
+    //         return;
+    //     }
+
+    //     let new_dir = DirectoryView::from(self.dirs[focus].path);
+    // }
 }
 
 impl View for DirectoryView {
