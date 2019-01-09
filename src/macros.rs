@@ -11,7 +11,8 @@ macro_rules! print_full_width(
                     printer.print_hline(($name.len(), $pos), printer.size.x - $name.len(), &" ");
                 }
             } else {
-                printer.print((0, $pos), &$name[0..printer.size.x]);
+                printer.print((0, $pos), &$name[0..printer.size.x - 1]);
+                printer.print((printer.size.x - 1, $pos), &"~");
             }
 
         }
