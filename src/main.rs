@@ -10,6 +10,8 @@ use parking_lot::Mutex;
 use std::{path::PathBuf, result::Result};
 use crate::main_view::MainView;
 use std::convert::TryFrom;
+use gag::Redirect;
+use std::fs::File;
 
 mod color_pair;
 mod directory_view;
@@ -33,6 +35,8 @@ lazy_static! {
 }
 
 fn main() -> Result<(), Error> {
+    // let file = File::create("output.log")?;
+    // let _ = Redirect::stderr(file)?;
     let mut siv = Cursive::ncurses();
 
     siv.load_theme_file("styles.toml").unwrap();

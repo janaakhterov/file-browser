@@ -12,7 +12,7 @@ use crate::print_full_width_with_selection;
 use crate::{color_pair::ColorPair, entry::Entry, print_full_width};
 use number_prefix::{binary_prefix, Prefixed, Standalone};
 use std::{fs::read_link, path::PathBuf};
-use std::convert::TryFrom;
+use core::convert::TryFrom;
 use failure::bail;
 
 pub(crate) struct DirectoryView {
@@ -50,7 +50,10 @@ impl DirectoryView {
         } else if filetype.is_file() {
             Ok(meta.len() as usize)
         } else if filetype.is_symlink() {
-            Ok(DirectoryView::size(read_link(entry)?)?)
+            match read_link(entry) {
+                Ok(link) => Ok(DirectoryView::size(link)?),
+                Err(_) => Ok(0),
+            }
         } else {
             Ok(0 as usize)
         }
@@ -103,7 +106,10 @@ impl TryFrom<PathBuf> for DirectoryView {
             let meta = entry.metadata()?;
             let filetype = meta.file_type();
 
-            let size = DirectoryView::size(entry.path())?;
+            let size = match DirectoryView::size(entry.path()) {
+                Ok(size) => size,
+                Err(_) => 0,
+            };
 
             let size = if !filetype.is_dir() {
                 match binary_prefix(size as f64) {

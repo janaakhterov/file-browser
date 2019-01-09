@@ -8,7 +8,7 @@ use cursive::{
 use crate::DirectoryView;
 use std::path::PathBuf;
 use failure::Error;
-use std::convert::TryFrom;
+use core::convert::TryFrom;
 
 pub(crate) struct MainView {
     main: DirectoryView,
@@ -30,14 +30,13 @@ impl MainView {
     pub(crate) fn leave_dir(&mut self) {
         let path = self.main.path.parent();
         if path.is_none() {
-            return;
+            panic!("No PARENT");
         }
         let path = path.unwrap();
 
-        let view = DirectoryView::try_from(path.to_path_buf());
-        if view.is_ok() {
-            let view = view.unwrap();
-            self.main = view;
+        match DirectoryView::try_from(path.to_path_buf()) {
+            Ok(view) => self.main = view,
+            Err(_) => {},
         }
     }
 }
