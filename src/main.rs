@@ -26,16 +26,6 @@ lazy_static! {
 }
 
 fn main() -> Result<(), Error> {
-    // let mut config = Config::new();
-    // let settings = match config.merge(config::File::with_name("settings.json")) {
-    //     Ok(settings) => settings,
-    //     Err(err) => {
-    //         eprintln!("{}", err);
-    //         &mut config
-    //     }
-    // };
-    // let settings = Arc::new(Mutex::new(settings));
-
     let mut siv = Cursive::ncurses();
 
     siv.load_theme_file("styles.toml").unwrap();
