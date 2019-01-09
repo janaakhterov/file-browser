@@ -1,3 +1,4 @@
+#![feature(try_from)]
 #[macro_use]
 extern crate lazy_static;
 
@@ -7,10 +8,13 @@ use cursive::{views::BoxView, Cursive};
 use failure::Error;
 use parking_lot::Mutex;
 use std::{path::Path, result::Result};
+use crate::main_view::MainView;
+use std::convert::TryFrom;
 
 mod color_pair;
 mod directory_view;
 mod entry;
+mod main_view;
 #[macro_use]
 mod macros;
 
@@ -34,7 +38,7 @@ fn main() -> Result<(), Error> {
     siv.load_theme_file("styles.toml").unwrap();
 
     let dirs_view =
-        BoxView::with_full_screen(DirectoryView::from(Path::new("/home/daniel/Config"))?);
+        BoxView::with_full_screen(MainView::try_from(Path::new("/home/daniel/Config"))?);
 
     siv.add_fullscreen_layer(dirs_view);
     siv.add_global_callback('q', |s| s.quit());

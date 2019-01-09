@@ -12,6 +12,8 @@ use crate::print_full_width_with_selection;
 use crate::{color_pair::ColorPair, entry::Entry, print_full_width};
 use number_prefix::{binary_prefix, Prefixed, Standalone};
 use std::{fs::read_link, path::PathBuf};
+use std::convert::TryFrom;
+use failure::bail;
 
 pub(crate) struct DirectoryView {
     dirs: Vec<Entry>,
@@ -52,7 +54,47 @@ impl DirectoryView {
         }
     }
 
-    pub fn from(path: &Path) -> Result<DirectoryView, Error> {
+    pub(crate) fn focus(&self) -> usize {
+        self.focus.get()
+    }
+
+    pub(crate) fn change_focus_by(&mut self, difference: i64) {
+        let focus = self.focus.get();
+        let new_focus = if difference > 0 {
+            if focus + difference as usize >= self.total_list_size() {
+                (self.total_list_size() - 1) as usize
+            } else {
+                focus.saturating_add(difference as usize)
+            }
+        } else if difference < 0 {
+            focus.saturating_sub(difference.abs() as usize)
+        } else {
+            focus
+        };
+        self.focus.set(new_focus);
+    }
+
+    pub(crate) fn total_list_size(&self) -> usize {
+        self.dirs.len() + self.files.len()
+    }
+
+    pub(crate) fn enter_dir(&mut self) -> Result<DirectoryView, Error> {
+        let focus = self.focus();
+
+        if focus >= self.dirs.len() {
+            bail!("Focused isn't a directory");
+        }
+
+        let path = self.dirs[focus].path.as_path();
+
+        Ok(DirectoryView::try_from(path)?)
+    }
+}
+
+impl TryFrom<&Path> for DirectoryView {
+    type Error = Error;
+
+    fn try_from(path: &Path) -> Result<Self, Self::Error> {
         let mut view = DirectoryView::new();
 
         for entry in read_dir(path)?
@@ -107,40 +149,6 @@ impl DirectoryView {
 
         Ok(view)
     }
-
-    pub fn focus(&self) -> usize {
-        self.focus.get()
-    }
-
-    pub fn change_focus_by(&mut self, difference: i64) {
-        let focus = self.focus.get();
-        let new_focus = if difference > 0 {
-            if focus + difference as usize >= self.total_list_size() {
-                (self.total_list_size() - 1) as usize
-            } else {
-                focus.saturating_add(difference as usize)
-            }
-        } else if difference < 0 {
-            focus.saturating_sub(difference.abs() as usize)
-        } else {
-            focus
-        };
-        self.focus.set(new_focus);
-    }
-
-    pub fn total_list_size(&self) -> usize {
-        self.dirs.len() + self.files.len()
-    }
-
-    // fn enter_dir(&mut self) {
-    //     let focus = self.focus();
-
-    //     if focus >= self.dirs.len() {
-    //         return;
-    //     }
-
-    //     let new_dir = DirectoryView::from(self.dirs[focus].path);
-    // }
 }
 
 impl View for DirectoryView {
