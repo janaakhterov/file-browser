@@ -36,26 +36,37 @@ impl DirectoryView {
         }
     }
 
-    fn size(entry: PathBuf) -> Result<usize, Error> {
-        let meta = entry.metadata()?;
+    fn size(entry: PathBuf) -> String {
+        let meta = match entry.metadata() {
+            Ok(meta) => meta,
+            Err(_) => return "Broken Link".to_string(),
+        };
+
         let filetype = meta.file_type();
 
         if filetype.is_dir() {
-            Ok(read_dir(entry)?
-                .into_iter()
+            let dir = match read_dir(entry) {
+                Ok(dir) => dir,
+                Err(_) => return "?".to_string(),
+            };
+
+            dir.into_iter()
                 .filter(Result::is_ok)
                 .map(Result::unwrap)
                 .collect::<Vec<_>>()
-                .len() as usize)
+                .len().to_string()
         } else if filetype.is_file() {
-            Ok(meta.len() as usize)
+            match binary_prefix(meta.len() as f64) {
+                Standalone(bytes) => format!("{} B", bytes),
+                Prefixed(prefix, n) => format!("{:.0} {}B", n, prefix),
+            }
         } else if filetype.is_symlink() {
             match read_link(entry) {
-                Ok(link) => Ok(DirectoryView::size(link)?),
-                Err(_) => Ok(0),
+                Ok(link) => DirectoryView::size(link),
+                Err(_) => "Broken Link".to_string(),
             }
         } else {
-            Ok(0 as usize)
+            "Error".to_string()
         }
     }
 
@@ -106,20 +117,7 @@ impl TryFrom<PathBuf> for DirectoryView {
             let meta = entry.metadata()?;
             let filetype = meta.file_type();
 
-            let size = match DirectoryView::size(entry.path()) {
-                Ok(size) => size,
-                Err(_) => 0,
-            };
-
-            let size = if !filetype.is_dir() {
-                match binary_prefix(size as f64) {
-                    Standalone(bytes) => format!("{} B", bytes),
-                    Prefixed(prefix, n) => format!("{:.0} {}B", n, prefix),
-                }
-            } else {
-                size.to_string()
-            };
-
+            let size = DirectoryView::size(entry.path());
             let size = if filetype.is_symlink() {
                 format!("-> {}", size)
             } else {
