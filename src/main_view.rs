@@ -36,6 +36,18 @@ impl View for MainView {
     }
 
     fn on_event(&mut self, event: Event) -> EventResult {
-        self.main.on_event(event)
+        match event {
+            Event::Char(c) => match c {
+                'l' => {
+                    let view = self.main.enter_dir();
+                    if view.is_ok() {
+                        self.main = view.unwrap();
+                    }
+                    EventResult::Consumed(None)
+                },
+                _ => self.main.on_event(event)
+            },
+            _ => self.main.on_event(event)
+        }
     }
 }
