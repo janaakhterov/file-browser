@@ -6,14 +6,14 @@ use cursive::{
     Printer,
 };
 use failure::Error;
-use std::{cell::Cell, cmp, fs::read_dir, path::Path, rc::Rc, result::Result};
+use std::{cell::Cell, cmp, fs::read_dir, rc::Rc, result::Result};
 #[macro_use]
 use crate::print_full_width_with_selection;
 use crate::{color_pair::ColorPair, entry::Entry, print_full_width};
+use core::convert::TryFrom;
 use number_prefix::{binary_prefix, Prefixed, Standalone};
 use std::{fs::read_link, path::PathBuf};
-use core::convert::TryFrom;
-use failure::bail;
+use std::cmp::Ordering;
 
 pub(crate) struct DirectoryView {
     pub(crate) path: PathBuf,
@@ -22,6 +22,56 @@ pub(crate) struct DirectoryView {
     focus: Rc<Cell<usize>>,
     align: Align,
     last_offset: Cell<usize>,
+}
+
+// Isn't safe
+pub(crate) fn search_vec(v: &Vec<Entry>, entry: &Entry) -> usize {
+    let mut l: usize = 0;
+    let mut m: usize = 0;
+    let mut r: usize = v.len().checked_sub(1).unwrap_or_else(|| 0);
+
+    if v.len() < 1 {
+        return 0;
+    }
+
+    match v[r].cmp(entry) {
+        Ordering::Less => return r,
+        _ => {},
+    }
+
+    match v[0].cmp(entry) {
+        Ordering::Greater => return 0,
+        _ => {},
+    }
+
+    while l <= r {
+        m = (((l + r) / 2) as f64).floor() as usize;
+        if v[m] < *entry {
+            let temp = m.checked_add(1);
+            if temp.is_none() {
+                return 0;
+            }
+            l = temp.unwrap();
+        } else if v[m] > *entry {
+            let temp = m.checked_sub(1);
+            if temp.is_none() {
+                return 0;
+            }
+            r = temp.unwrap();
+        } else {
+            // Shouldn't be possible to get here unless two entries have the same name
+            // which shouldn't happen since names are file names and duplicate files
+            // are not possible;
+            return m as usize;
+        }
+    }
+    // Usually would end up here
+    return m as usize;
+}
+
+pub(crate) fn insert(v: &mut Vec<Entry>, entry: Entry) {
+    let index = search_vec(&v, &entry);
+    v.insert(index, entry);
 }
 
 impl DirectoryView {
@@ -68,7 +118,8 @@ impl DirectoryView {
                 .filter(Result::is_ok)
                 .map(Result::unwrap)
                 .collect::<Vec<_>>()
-                .len().to_string()
+                .len()
+                .to_string()
         } else if filetype.is_file() {
             match binary_prefix(meta.len() as f64) {
                 Standalone(bytes) => format!("{} B", bytes),
@@ -115,6 +166,9 @@ impl TryFrom<PathBuf> for DirectoryView {
     fn try_from(path: PathBuf) -> Result<Self, Self::Error> {
         let mut view = DirectoryView::new(path.clone());
 
+        // thread::spawn(|| {
+
+        // });
         for entry in read_dir(path.as_path())?
             .into_iter()
             .filter(Result::is_ok)
@@ -140,20 +194,34 @@ impl TryFrom<PathBuf> for DirectoryView {
 
             let color = ColorPair::new(&entry).unwrap_or_else(|_| ColorPair::default());
 
-            match meta.is_dir() {
+            let v = match meta.is_dir() {
                 true => &mut view.dirs,
                 false => &mut view.files,
-            }
-            .push(Entry {
+            };
+
+            let entry = Entry {
                 path,
                 name,
                 size,
                 color,
-            });
+            };
+
+            insert(
+                v,
+                entry,
+                // Entry {
+                //     path,
+                //     name,
+                //     size,
+                //     color,
+                // },
+            );
+            // v.push(entry);
+            // v.sort();
         }
 
-        view.dirs.sort();
-        view.files.sort();
+        // view.dirs.sort();
+        // view.files.sort();
 
         Ok(view)
     }

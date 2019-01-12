@@ -1,14 +1,13 @@
+use crate::DirectoryView;
+use core::convert::TryFrom;
 use cursive::{
-    align::Align,
-    event::{Event, EventResult, Key},
+    event::{Event, EventResult},
     vec::Vec2,
     view::View,
     Printer,
 };
-use crate::DirectoryView;
-use std::path::PathBuf;
 use failure::Error;
-use core::convert::TryFrom;
+use std::path::PathBuf;
 
 pub(crate) struct MainView {
     main: DirectoryView,
@@ -39,8 +38,8 @@ impl MainView {
             Ok(view) => {
                 self.main = view;
                 self.main.focus_path(path);
-            },
-            Err(_) => {},
+            }
+            Err(_) => {}
         }
     }
 }
@@ -51,9 +50,7 @@ impl TryFrom<PathBuf> for MainView {
     fn try_from(path: PathBuf) -> Result<Self, Self::Error> {
         let main = DirectoryView::try_from(path)?;
 
-        Ok(MainView {
-            main
-        })
+        Ok(MainView { main })
     }
 }
 
@@ -73,14 +70,14 @@ impl View for MainView {
                 'l' => {
                     self.enter_dir();
                     EventResult::Consumed(None)
-                },
+                }
                 'h' => {
                     self.leave_dir();
                     EventResult::Consumed(None)
                 }
-                _ => self.main.on_event(event)
+                _ => self.main.on_event(event),
             },
-            _ => self.main.on_event(event)
+            _ => self.main.on_event(event),
         }
     }
 }

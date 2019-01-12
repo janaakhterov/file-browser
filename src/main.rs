@@ -2,17 +2,12 @@
 #[macro_use]
 extern crate lazy_static;
 
-use crate::directory_view::DirectoryView;
+use crate::{directory_view::DirectoryView, main_view::MainView};
 use config::Config;
 use cursive::{views::BoxView, Cursive};
 use failure::Error;
 use parking_lot::Mutex;
-use std::{path::PathBuf, result::Result};
-use crate::main_view::MainView;
-use std::convert::TryFrom;
-use gag::Redirect;
-use std::fs::File;
-use std::env::current_dir;
+use std::{convert::TryFrom, env::current_dir, result::Result};
 
 mod color_pair;
 mod directory_view;
@@ -36,14 +31,11 @@ lazy_static! {
 }
 
 fn main() -> Result<(), Error> {
-    // let file = File::create("output.log")?;
-    // let _ = Redirect::stderr(file)?;
     let mut siv = Cursive::ncurses();
 
     siv.load_theme_file("styles.toml").unwrap();
 
-    let dirs_view =
-        BoxView::with_full_screen(MainView::try_from(current_dir()?)?);
+    let dirs_view = BoxView::with_full_screen(MainView::try_from(current_dir()?)?);
 
     siv.add_fullscreen_layer(dirs_view);
     siv.add_global_callback('q', |s| s.quit());
