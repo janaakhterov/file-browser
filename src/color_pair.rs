@@ -1,7 +1,9 @@
 use crate::SETTINGS;
 use cursive::theme::{BaseColor, Color, ColorStyle};
 use failure::{err_msg, Error};
-use std::{collections::HashMap, fs::DirEntry, ops::BitAnd, os::unix::fs::PermissionsExt};
+use std::{collections::HashMap, ops::BitAnd, os::unix::fs::PermissionsExt};
+use tokio_fs::DirEntry;
+use std::fs::Metadata;
 
 pub struct ColorPair {
     pub regular: ColorStyle,
@@ -21,9 +23,10 @@ impl Default for ColorPair {
 }
 
 impl ColorPair {
-    pub fn new(entry: &DirEntry) -> Result<ColorPair, Error> {
-        let meta = entry.metadata().unwrap();
-        let filetype = entry.file_type()?;
+    pub fn new(entry: &DirEntry, meta: &Metadata) -> Result<ColorPair, Error> {
+        // Ok(ColorPair::default())
+        // let meta = entry.metadata().unwrap();
+        let filetype = meta.file_type();
         let colors = SETTINGS.lock().get::<HashMap<String, String>>("ext");
 
         if filetype.is_dir() {
@@ -62,7 +65,7 @@ impl ColorPair {
             let colors = colors?;
             let color = &colors.get(ext);
             if color.is_some() {
-                let color = &color.unwrap();
+                let color: &str = &color.unwrap();
                 let color = Color::parse(&color).ok_or_else(|| err_msg("Failed to parse color"))?;
                 Ok(ColorPair {
                     regular: ColorStyle::new(color, Color::Dark(BaseColor::Black)),

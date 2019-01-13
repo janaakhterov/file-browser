@@ -4,9 +4,9 @@ macro_rules! print_full_width(
         |printer| {
             if $name.len() < printer.size.x {
                 printer.print((0, $pos), &$name);
-                if $name.len() + $size.len() < printer.size.x {
-                    printer.print_hline(($name.len(), $pos), printer.size.x - $name.len() - $size.len(), &" ");
-                    printer.print((printer.size.x - $size.len(), $pos), &$size);
+                if $name.len() + $size.read().len() < printer.size.x {
+                    printer.print_hline(($name.len(), $pos), printer.size.x - $name.len() - $size.read().len(), &" ");
+                    printer.print((printer.size.x - $size.read().len(), $pos), &$size.read());
                 } else {
                     printer.print_hline(($name.len(), $pos), printer.size.x - $name.len(), &" ");
                 }

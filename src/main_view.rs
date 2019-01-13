@@ -8,18 +8,20 @@ use cursive::{
 };
 use failure::Error;
 use std::path::PathBuf;
+use parking_lot::RwLock;
+use std::sync::Arc;
 
 pub(crate) struct MainView {
-    main: DirectoryView,
+    main: Arc<RwLock<DirectoryView>>,
 }
 
 impl MainView {
     pub(crate) fn enter_dir(&mut self) {
-        let focus = self.main.focus();
-        if focus >= self.main.dirs.len() {
+        let focus = self.main.read().focus();
+        if focus >= self.main.read().dirs.len() {
             return;
         }
-        let path = self.main.dirs[focus].path.clone();
+        let path = self.main.read().dirs[focus].path.clone();
         let view = DirectoryView::try_from(path);
         if view.is_ok() {
             self.main = view.unwrap();
@@ -27,7 +29,7 @@ impl MainView {
     }
 
     pub(crate) fn leave_dir(&mut self) {
-        let path = self.main.path.clone();
+        let path = self.main.read().path.clone();
         let parent = path.parent();
         if parent.is_none() {
             return;
@@ -37,7 +39,7 @@ impl MainView {
         match DirectoryView::try_from(parent.to_path_buf()) {
             Ok(view) => {
                 self.main = view;
-                self.main.focus_path(path);
+                self.main.write().focus_path(path);
             }
             Err(_) => {}
         }
@@ -57,11 +59,11 @@ impl TryFrom<PathBuf> for MainView {
 impl View for MainView {
     fn draw(&self, printer: &Printer) {
         // let printer = &printer.inner_size((30, 10));
-        self.main.draw(printer);
+        self.main.read().draw(printer);
     }
 
     fn required_size(&mut self, _: Vec2) -> Vec2 {
-        self.main.required_size(Vec2::zero())
+        self.main.write().required_size(Vec2::zero())
     }
 
     fn on_event(&mut self, event: Event) -> EventResult {
@@ -75,9 +77,9 @@ impl View for MainView {
                     self.leave_dir();
                     EventResult::Consumed(None)
                 }
-                _ => self.main.on_event(event),
+                _ => self.main.write().on_event(event),
             },
-            _ => self.main.on_event(event),
+            _ => self.main.write().on_event(event),
         }
     }
 }

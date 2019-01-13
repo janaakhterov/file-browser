@@ -1,10 +1,12 @@
 use crate::color_pair::ColorPair;
 use std::{cmp::Ordering, path::PathBuf};
+use std::sync::Arc;
+use parking_lot::RwLock;
 
 pub(crate) struct Entry {
     pub(crate) path: PathBuf,
     pub(crate) name: String,
-    pub(crate) size: String,
+    pub(crate) size: Arc<RwLock<String>>,
     pub(crate) color: ColorPair,
 }
 
