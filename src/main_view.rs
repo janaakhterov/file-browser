@@ -110,7 +110,7 @@ impl View for MainView {
     fn required_size(&mut self, _: Vec2) -> Vec2 {
         match self.views.len() {
             0 => Vec2::zero(),
-            // _ => self.views[self.views.len() - 1].write().required_size(Vec2::zero()),
+            1 => self.views[0].write().required_size(Vec2::zero()),
             _ => {
                 let main = self.views[self.views.len() - 1].write().required_size(Vec2::zero());
                 let parent = self.views[self.views.len() - 2].write().required_size(Vec2::zero());
