@@ -124,45 +124,46 @@ impl DirectoryView {
     }
 
     fn size(entry: PathBuf, meta: &Metadata) -> String {
-        let filetype = meta.file_type();
+        // let filetype = meta.file_type();
 
-        if filetype.is_dir() {
-            let count = Arc::new(RwLock::new(0 as usize));
-            let c = count.clone();
-            let fut = read_dir(entry)
-                .flatten_stream()
-                .for_each(move |_| {
-                    let cur = *c.read();
-                    *c.write() = cur + 1;
-                    Ok(())
-                })
-                .map_err(|_| {});
+        // if filetype.is_dir() {
+        //     let count = Arc::new(RwLock::new(0 as usize));
+        //     let c = count.clone();
+        //     let fut = read_dir(entry)
+        //         .flatten_stream()
+        //         .for_each(move |_| {
+        //             let cur = *c.read();
+        //             *c.write() = cur + 1;
+        //             Ok(())
+        //         })
+        //         .map_err(|_| {});
 
-            tokio::run(fut);
+        //     tokio::run(fut);
 
-            match Arc::try_unwrap(count) {
-                Ok(count) => count.into_inner().to_string(),
-                Err(_) => "".to_string(),
-            }
-        } else if filetype.is_file() {
-            match binary_prefix(meta.len() as f64) {
-                Standalone(bytes) => format!("{} B", bytes),
-                Prefixed(prefix, n) => format!("{:.0} {}B", n, prefix),
-            }
-        } else if filetype.is_symlink() {
-            match read_link(entry).wait() {
-                Ok(link) => {
-                    let meta = match metadata(link.clone()).wait() {
-                        Ok(meta) => meta,
-                        Err(_) => return "Broken Link".to_string(),
-                    };
-                    DirectoryView::size(link, &meta)
-                },
-                Err(_) => "Broken Link".to_string(),
-            }
-        } else {
-            "Error".to_string()
-        }
+        //     match Arc::try_unwrap(count) {
+        //         Ok(count) => count.into_inner().to_string(),
+        //         Err(_) => "".to_string(),
+        //     }
+        // } else if filetype.is_file() {
+        //     match binary_prefix(meta.len() as f64) {
+        //         Standalone(bytes) => format!("{} B", bytes),
+        //         Prefixed(prefix, n) => format!("{:.0} {}B", n, prefix),
+        //     }
+        // } else if filetype.is_symlink() {
+        //     match read_link(entry).wait() {
+        //         Ok(link) => {
+        //             let meta = match metadata(link.clone()).wait() {
+        //                 Ok(meta) => meta,
+        //                 Err(_) => return "Broken Link".to_string(),
+        //             };
+        //             DirectoryView::size(link, &meta)
+        //         },
+        //         Err(_) => "Broken Link".to_string(),
+        //     }
+        // } else {
+        //     "Error".to_string()
+        // }
+        "".to_string()
     }
 
     pub(crate) fn focus(&self) -> usize {
