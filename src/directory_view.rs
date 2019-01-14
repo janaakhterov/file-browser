@@ -9,6 +9,7 @@ use failure::Error;
 use std::{cmp, result::Result};
 #[macro_use]
 use crate::print_full_width_with_selection;
+use crate::print_empty;
 use crate::{color_pair::ColorPair, entry::Entry, print_full_width};
 use core::convert::TryFrom;
 use number_prefix::{binary_prefix, Prefixed, Standalone};
@@ -22,6 +23,7 @@ use std::sync::Arc;
 use futures::stream::Stream;
 use tokio_fs::read_link;
 use std::fs::Metadata;
+use cursive::theme::{BaseColor, Color, ColorStyle};
 
 pub(crate) struct DirectoryView {
     pub(crate) path: PathBuf,
@@ -242,6 +244,15 @@ impl View for DirectoryView {
         let offset = self.align.v.get_offset(height, printer.size.y);
         let printer = &printer.offset((0, offset));
         let focus = self.focus();
+
+        if height == 0 {
+            let color = ColorStyle::new(
+                Color::Dark(BaseColor::White),
+                Color::Dark(BaseColor::Red),
+            );
+            print_empty!(printer, color);
+            return;
+        }
 
         // Which element should we start at to make sure the focused element
         // is in view.

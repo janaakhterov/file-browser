@@ -33,3 +33,14 @@ macro_rules! print_full_width_with_selection(
         }
     }}
 );
+
+#[macro_export]
+macro_rules! print_empty(
+    ($printer:ident, $color:ident) => {{
+        $printer.with_color(
+            $color,
+            |printer| {
+                printer.print((0, 0), "Empty");
+        });
+    }}
+);
