@@ -29,7 +29,7 @@ impl MainView {
             }
 
             let path = last.read().dirs[focus].path.clone();
-            match DirectoryView::try_from(path) {
+            match DirectoryView::try_from(path, true) {
                 Ok(view) => {
                     last.write().disable();
                     view.write().enable();
@@ -48,12 +48,15 @@ impl MainView {
         self.views.pop();
         if let Some(last) = self.views.last() {
             last.write().enable();
+            if !last.read().has_sizes {
+                last.write().get_sizes();
+            }
         }
     }
 
     fn build_views_history(&mut self, path: PathBuf) {
         match path.parent() {
-            Some(parent_path) => match DirectoryView::try_from(parent_path.to_path_buf()) {
+            Some(parent_path) => match DirectoryView::try_from(parent_path.to_path_buf(), false) {
                 Ok(parent) => {
                     parent.write().disable();
                     self.views.insert(0, parent);
@@ -71,7 +74,7 @@ impl TryFrom<PathBuf> for MainView {
 
     fn try_from(path: PathBuf) -> Result<Self, Self::Error> {
         let mut main_view = MainView::new();
-        let main = DirectoryView::try_from(path.clone())?;
+        let main = DirectoryView::try_from(path.clone(), true)?;
 
         main_view.views.push(main);
         main_view.build_views_history(path);

@@ -22,6 +22,7 @@ pub(crate) struct DirectoryView {
     pub(crate) path: PathBuf,
     pub(crate) dirs: Vec<Entry>,
     pub(crate) files: Vec<Entry>,
+    pub(crate) has_sizes: bool,
     focus: usize,
     enabled: bool,
     align: Align,
@@ -78,11 +79,12 @@ pub(crate) fn insert(v: &mut Vec<Entry>, entry: Entry) {
 }
 
 impl DirectoryView {
-    fn new(path: PathBuf) -> Self {
+    fn new(path: PathBuf, has_sizes: bool) -> Self {
         DirectoryView {
             path,
             dirs: Vec::new(),
             files: Vec::new(),
+            has_sizes,
             focus: 0,
             enabled: true,
             align: Align::top_left(),
@@ -117,46 +119,50 @@ impl DirectoryView {
     }
 
     fn size(entry: PathBuf, meta: &Metadata) -> String {
-        // let filetype = meta.file_type();
+        let filetype = meta.file_type();
 
-        // if filetype.is_dir() {
-        //     let count = Arc::new(RwLock::new(0 as usize));
-        //     let c = count.clone();
-        //     let fut = read_dir(entry)
-        //         .flatten_stream()
-        //         .for_each(move |_| {
-        //             let cur = *c.read();
-        //             *c.write() = cur + 1;
-        //             Ok(())
-        //         })
-        //         .map_err(|_| {});
+        if filetype.is_dir() {
+            let count = Arc::new(RwLock::new(0 as usize));
+            let c = count.clone();
+            let fut = read_dir(entry)
+                .flatten_stream()
+                .for_each(move |_| {
+                    let cur = *c.read();
+                    *c.write() = cur + 1;
+                    Ok(())
+                })
+                .map_err(|_| {});
 
-        //     tokio::run(fut);
+            tokio::run(fut);
 
-        //     match Arc::try_unwrap(count) {
-        //         Ok(count) => count.into_inner().to_string(),
-        //         Err(_) => "".to_string(),
-        //     }
-        // } else if filetype.is_file() {
-        //     match binary_prefix(meta.len() as f64) {
-        //         Standalone(bytes) => format!("{} B", bytes),
-        //         Prefixed(prefix, n) => format!("{:.0} {}B", n, prefix),
-        //     }
-        // } else if filetype.is_symlink() {
-        //     match read_link(entry).wait() {
-        //         Ok(link) => {
-        //             let meta = match metadata(link.clone()).wait() {
-        //                 Ok(meta) => meta,
-        //                 Err(_) => return "Broken Link".to_string(),
-        //             };
-        //             DirectoryView::size(link, &meta)
-        //         },
-        //         Err(_) => "Broken Link".to_string(),
-        //     }
-        // } else {
-        //     "Error".to_string()
-        // }
-        "".to_string()
+            match Arc::try_unwrap(count) {
+                Ok(count) => count.into_inner().to_string(),
+                Err(_) => "".to_string(),
+            }
+        } else if filetype.is_file() {
+            match binary_prefix(meta.len() as f64) {
+                Standalone(bytes) => format!("{} B", bytes),
+                Prefixed(prefix, n) => format!("{:.0} {}B", n, prefix),
+            }
+        } else if filetype.is_symlink() {
+            match read_link(entry.clone()).wait() {
+                Ok(link) => {
+                    if link == entry {
+                        return "Recursive Link".to_string();
+                    }
+
+                    let new_meta = match metadata(link.clone()).wait() {
+                        Ok(meta) => meta,
+                        Err(_) => return "Broken Link".to_string(),
+                    };
+                    DirectoryView::size(link, &new_meta)
+                },
+                Err(_) => "Broken Link".to_string(),
+            }
+        } else {
+            "Error".to_string()
+        }
+        // "".to_string()
     }
 
     pub(crate) fn focus(&self) -> usize {
@@ -183,8 +189,29 @@ impl DirectoryView {
         self.dirs.len() + self.files.len()
     }
 
-    pub(crate) fn try_from(path: PathBuf) -> Result<Arc<RwLock<Self>>, Error> {
-        let view = Arc::new(RwLock::new(DirectoryView::new(path.clone())));
+    pub(crate) fn get_sizes(&mut self) {
+        for entry in self.dirs.iter().chain(self.files.iter()) {
+            let s = entry.size.clone();
+
+            let path = entry.path.clone();
+            let meta = match path.clone().metadata() {
+                Ok(meta) => meta,
+                Err(_) => return,
+            };
+            let filetype = meta.file_type();
+
+            let size = DirectoryView::size(path.clone(), &meta);
+            let size = if filetype.is_symlink() {
+                format!("-> {}", size)
+            } else {
+                size
+            };
+            *s.write() = size;
+        }
+    }
+
+    pub(crate) fn try_from(path: PathBuf, show_size: bool) -> Result<Arc<RwLock<Self>>, Error> {
+        let view = Arc::new(RwLock::new(DirectoryView::new(path.clone(), show_size)));
         let v = view.clone();
         thread::spawn(move || {
             let fut = read_dir(path.clone())
@@ -200,19 +227,12 @@ impl DirectoryView {
 
                     let filetype = meta.file_type();
 
-                    let s = size.clone();
-                    let m = meta.clone();
-                    let p = entry.path().clone();
-                    thread::spawn(move || {
-                        let filetype = m.file_type();
-                        let size = DirectoryView::size(p, &m);
-                        let size = if filetype.is_symlink() {
-                            format!("-> {}", size)
-                        } else {
-                            size
-                        };
-                        *s.write() = size;
-                    });
+                    if show_size {
+                        let view = v.clone();
+                        thread::spawn(move || {
+                            view.clone().write().get_sizes();
+                        });
+                    }
 
                     let name = match entry.file_name().into_string() {
                         Ok(name) => name,
