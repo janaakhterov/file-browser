@@ -7,8 +7,7 @@ use config::Config;
 use cursive::{views::BoxView, Cursive};
 use failure::Error;
 use parking_lot::Mutex;
-use std::{convert::TryFrom, env::current_dir, result::Result};
-use std::path::Path;
+use std::{convert::TryFrom, env::current_dir, path::Path, result::Result};
 
 mod color_pair;
 mod directory_view;

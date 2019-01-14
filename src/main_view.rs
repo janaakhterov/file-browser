@@ -7,9 +7,8 @@ use cursive::{
     Printer,
 };
 use failure::Error;
-use std::path::PathBuf;
 use parking_lot::RwLock;
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 pub(crate) struct MainView {
     views: Vec<Arc<RwLock<DirectoryView>>>,
@@ -17,9 +16,7 @@ pub(crate) struct MainView {
 
 impl MainView {
     fn new() -> Self {
-        MainView {
-            views: Vec::new(),
-        }
+        MainView { views: Vec::new() }
     }
 
     pub(crate) fn enter_dir(&mut self) {
@@ -37,11 +34,10 @@ impl MainView {
                     last.write().disable();
                     view.write().enable();
                     self.views.push(view);
-                },
-                Err(_) => {},
+                }
+                Err(_) => {}
             }
         }
-
     }
 
     pub(crate) fn leave_dir(&mut self) {
@@ -57,16 +53,14 @@ impl MainView {
 
     fn build_views_history(&mut self, path: PathBuf) {
         match path.parent() {
-            Some(parent_path) => {
-                match DirectoryView::try_from(parent_path.to_path_buf()) {
-                    Ok(parent) => {
-                        parent.write().disable();
-                        self.views.insert(0, parent);
-                        self.build_views_history(parent_path.to_path_buf());
-                    },
-                    Err(_) => {},
+            Some(parent_path) => match DirectoryView::try_from(parent_path.to_path_buf()) {
+                Ok(parent) => {
+                    parent.write().disable();
+                    self.views.insert(0, parent);
+                    self.build_views_history(parent_path.to_path_buf());
                 }
-            }
+                Err(_) => {}
+            },
             None => return,
         }
     }
@@ -91,19 +85,16 @@ impl View for MainView {
         match self.views.len() {
             0 => return,
             1 => self.views[0].read().draw(printer),
-            // _ => self.views[self.views.len() - 1].read().draw(printer),
             _ => {
-                let width = printer.size.x/2;
-                let parent_printer = printer
-                    .offset((0, 0))
-                    .cropped((width, printer.size.y));
-                let main_printer = printer
-                    .offset((width, 0))
-                    .cropped((width, printer.size.y));
+                let width = printer.size.x / 2;
+                let parent_printer = printer.offset((0, 0)).cropped((width, printer.size.y));
+                let main_printer = printer.offset((width, 0)).cropped((width, printer.size.y));
 
                 self.views[self.views.len() - 1].read().draw(&main_printer);
-                self.views[self.views.len() - 2].read().draw(&parent_printer);
-            },
+                self.views[self.views.len() - 2]
+                    .read()
+                    .draw(&parent_printer);
+            }
         }
     }
 
@@ -112,10 +103,14 @@ impl View for MainView {
             0 => Vec2::zero(),
             1 => self.views[0].write().required_size(Vec2::zero()),
             _ => {
-                let main = self.views[self.views.len() - 1].write().required_size(Vec2::zero());
-                let parent = self.views[self.views.len() - 2].write().required_size(Vec2::zero());
+                let main = self.views[self.views.len() - 1]
+                    .write()
+                    .required_size(Vec2::zero());
+                let parent = self.views[self.views.len() - 2]
+                    .write()
+                    .required_size(Vec2::zero());
                 main + parent
-            },
+            }
         }
     }
 
@@ -132,19 +127,19 @@ impl View for MainView {
                 }
                 _ => {
                     if let Some(last) = &self.views.last() {
-                        last.write().on_event(event)  
+                        last.write().on_event(event)
                     } else {
                         EventResult::Ignored
                     }
-                },
+                }
             },
-            _ => { 
+            _ => {
                 if let Some(last) = &self.views.last() {
                     last.write().on_event(event)
                 } else {
                     EventResult::Ignored
                 }
-            },
+            }
         }
     }
 }

@@ -1,9 +1,8 @@
 use crate::SETTINGS;
 use cursive::theme::{BaseColor, Color, ColorStyle};
 use failure::{err_msg, Error};
-use std::{collections::HashMap, ops::BitAnd, os::unix::fs::PermissionsExt};
+use std::{collections::HashMap, fs::Metadata, ops::BitAnd, os::unix::fs::PermissionsExt};
 use tokio_fs::DirEntry;
-use std::fs::Metadata;
 
 pub struct ColorPair {
     pub regular: ColorStyle,

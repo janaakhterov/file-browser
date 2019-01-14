@@ -9,21 +9,14 @@ use failure::Error;
 use std::{cmp, result::Result};
 #[macro_use]
 use crate::print_full_width_with_selection;
-use crate::print_empty;
-use crate::{color_pair::ColorPair, entry::Entry, print_full_width};
+use crate::{color_pair::ColorPair, entry::Entry, print_empty, print_full_width};
 use core::convert::TryFrom;
+use cursive::theme::{BaseColor, Color, ColorStyle};
+use futures::{future::Future, stream::Stream};
 use number_prefix::{binary_prefix, Prefixed, Standalone};
 use parking_lot::RwLock;
-use std::{cmp::Ordering, path::PathBuf};
-use std::thread;
-use tokio_fs::read_dir;
-use tokio_fs::metadata;
-use futures::future::Future;
-use std::sync::Arc;
-use futures::stream::Stream;
-use tokio_fs::read_link;
-use std::fs::Metadata;
-use cursive::theme::{BaseColor, Color, ColorStyle};
+use std::{cmp::Ordering, fs::Metadata, path::PathBuf, sync::Arc, thread};
+use tokio_fs::{metadata, read_dir, read_link};
 
 pub(crate) struct DirectoryView {
     pub(crate) path: PathBuf,
@@ -219,7 +212,6 @@ impl DirectoryView {
                             size
                         };
                         *s.write() = size;
-
                     });
 
                     let name = match entry.file_name().into_string() {
@@ -227,7 +219,8 @@ impl DirectoryView {
                         Err(_) => return Ok(()),
                     };
 
-                    let color = ColorPair::new(&entry, &meta).unwrap_or_else(|_| ColorPair::default());
+                    let color =
+                        ColorPair::new(&entry, &meta).unwrap_or_else(|_| ColorPair::default());
 
                     let entry = Entry {
                         path,
@@ -262,10 +255,7 @@ impl View for DirectoryView {
         let enabled = self.is_enabled();
 
         if height == 0 {
-            let color = ColorStyle::new(
-                Color::Dark(BaseColor::White),
-                Color::Dark(BaseColor::Red),
-            );
+            let color = ColorStyle::new(Color::Dark(BaseColor::White), Color::Dark(BaseColor::Red));
             print_empty!(printer, color);
             return;
         }
@@ -292,12 +282,16 @@ impl View for DirectoryView {
                 let name = &self.dirs[element].name;
                 let color = &self.dirs[element].color;
                 let size = &self.dirs[element].size;
-                print_full_width_with_selection!(printer, element, focus, enabled, name, size, color, i);
+                print_full_width_with_selection!(
+                    printer, element, focus, enabled, name, size, color, i
+                );
             } else if element - self.dirs.len() < self.files.len() {
                 let name = &self.files[element - self.dirs.len()].name;
                 let color = &self.files[element - self.dirs.len()].color;
                 let size = &self.files[element - self.dirs.len()].size;
-                print_full_width_with_selection!(printer, element, focus, enabled, name, size, color, i);
+                print_full_width_with_selection!(
+                    printer, element, focus, enabled, name, size, color, i
+                );
             }
         }
     }
