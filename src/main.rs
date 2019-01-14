@@ -32,6 +32,7 @@ lazy_static! {
 
 fn main() -> Result<(), Error> {
     let mut siv = Cursive::ncurses();
+    siv.set_fps(60);
 
     siv.load_theme_file("styles.toml").unwrap();
 
