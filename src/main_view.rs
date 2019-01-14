@@ -12,6 +12,7 @@ use parking_lot::RwLock;
 use std::sync::Arc;
 
 pub(crate) struct MainView {
+    parent: Option<Arc<RwLock<DirectoryView>>>,
     main: Arc<RwLock<DirectoryView>>,
 }
 
@@ -21,27 +22,29 @@ impl MainView {
         if focus >= self.main.read().dirs.len() {
             return;
         }
+
         let path = self.main.read().dirs[focus].path.clone();
         let view = DirectoryView::try_from(path);
         if view.is_ok() {
+            self.parent = Some(self.main.clone());
             self.main = view.unwrap();
         }
     }
 
     pub(crate) fn leave_dir(&mut self) {
-        let path = self.main.read().path.clone();
-        let parent = path.parent();
-        if parent.is_none() {
-            return;
-        }
-        let parent = parent.unwrap();
+        if let Some(parent) = &mut self.parent {
+            self.main = parent.clone();
+            self.main.write().enable();
 
-        match DirectoryView::try_from(parent.to_path_buf()) {
-            Ok(view) => {
-                self.main = view;
-                self.main.write().focus_path(path);
-            }
-            Err(_) => {}
+            self.parent = match self.main.read().path.parent() {
+                Some(path) => {
+                    match DirectoryView::try_from(path.to_path_buf()) {
+                        Ok(parent) => Some(parent),
+                        Err(_) => None,
+                    }
+                }
+                None => None,
+            };
         }
     }
 }
@@ -50,16 +53,44 @@ impl TryFrom<PathBuf> for MainView {
     type Error = Error;
 
     fn try_from(path: PathBuf) -> Result<Self, Self::Error> {
-        let main = DirectoryView::try_from(path)?;
+        let main = DirectoryView::try_from(path.clone())?;
+        let parent = match path.parent() {
+            Some(path) => {
+                match DirectoryView::try_from(path.to_path_buf()) {
+                    Ok(parent) => {
+                        parent.write().disable();
+                        Some(parent)
+                    },
+                    Err(_) => None,
+                }
+            }
+            None => None,
+        };
 
-        Ok(MainView { main })
+        Ok(MainView { 
+            parent,
+            main,
+        })
     }
 }
 
 impl View for MainView {
     fn draw(&self, printer: &Printer) {
         // let printer = &printer.inner_size((30, 10));
-        self.main.read().draw(printer);
+
+        if let Some(parent) = &self.parent {
+            let width = printer.size.x/2 ;
+            let parent_printer = printer
+                .cropped((width, printer.size.y));
+            let main_printer = printer
+                .offset((width, 0))
+                .cropped((width, printer.size.y));
+
+            parent.read().draw(&parent_printer);
+            self.main.read().draw(&main_printer);
+        } else {
+            self.main.read().draw(printer);
+        }
     }
 
     fn required_size(&mut self, _: Vec2) -> Vec2 {

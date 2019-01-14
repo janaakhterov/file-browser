@@ -30,6 +30,7 @@ pub(crate) struct DirectoryView {
     pub(crate) dirs: Vec<Entry>,
     pub(crate) files: Vec<Entry>,
     focus: usize,
+    enabled: bool,
     align: Align,
     last_offset: RwLock<usize>,
 }
@@ -90,9 +91,22 @@ impl DirectoryView {
             dirs: Vec::new(),
             files: Vec::new(),
             focus: 0,
+            enabled: true,
             align: Align::top_left(),
             last_offset: RwLock::new(0),
         }
+    }
+
+    pub(crate) fn disable(&mut self) {
+        self.enabled = false;
+    }
+
+    pub(crate) fn enable(&mut self) {
+        self.enabled = true;
+    }
+
+    pub(crate) fn is_enabled(&self) -> bool {
+        self.enabled
     }
 
     pub(crate) fn focus_path(&mut self, path: PathBuf) {
@@ -244,6 +258,7 @@ impl View for DirectoryView {
         let offset = self.align.v.get_offset(height, printer.size.y);
         let printer = &printer.offset((0, offset));
         let focus = self.focus();
+        let enabled = self.is_enabled();
 
         if height == 0 {
             let color = ColorStyle::new(
@@ -276,12 +291,12 @@ impl View for DirectoryView {
                 let name = &self.dirs[element].name;
                 let color = &self.dirs[element].color;
                 let size = &self.dirs[element].size;
-                print_full_width_with_selection!(printer, element, focus, name, size, color, i);
+                print_full_width_with_selection!(printer, element, focus, enabled, name, size, color, i);
             } else if element - self.dirs.len() < self.files.len() {
                 let name = &self.files[element - self.dirs.len()].name;
                 let color = &self.files[element - self.dirs.len()].color;
                 let size = &self.files[element - self.dirs.len()].size;
-                print_full_width_with_selection!(printer, element, focus, name, size, color, i);
+                print_full_width_with_selection!(printer, element, focus, enabled, name, size, color, i);
             }
         }
     }

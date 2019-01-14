@@ -21,8 +21,8 @@ macro_rules! print_full_width(
 
 #[macro_export]
 macro_rules! print_full_width_with_selection(
-    ($printer:ident, $element:ident, $focus:ident, $name:ident, $size:ident, $color:ident, $pos:ident) => {{
-        if $element == $focus {
+    ($printer:ident, $element:ident, $focus:ident, $enabled:ident, $name:ident, $size:ident, $color:ident, $pos:ident) => {{
+        if $element == $focus  && $enabled {
             $printer.with_color(
                 $color.highlight,
                 print_full_width!($name, $size, $pos));

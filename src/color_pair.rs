@@ -24,8 +24,6 @@ impl Default for ColorPair {
 
 impl ColorPair {
     pub fn new(entry: &DirEntry, meta: &Metadata) -> Result<ColorPair, Error> {
-        // Ok(ColorPair::default())
-        // let meta = entry.metadata().unwrap();
         let filetype = meta.file_type();
         let colors = SETTINGS.lock().get::<HashMap<String, String>>("ext");
 
