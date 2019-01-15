@@ -32,13 +32,13 @@ pub(crate) struct DirectoryView {
 }
 
 pub(crate) fn search_vec(v: &Vec<Entry>, entry: &Entry) -> usize {
-    let mut l: usize = 0;
-    let mut m: usize = 0;
-    let mut r: usize = v.len().checked_sub(1).unwrap_or_else(|| 0);
-
     if v.len() < 1 {
         return 0;
     }
+
+    let mut l: usize = 0;
+    let mut m: usize = 0;
+    let mut r: usize = v.len() - 1;
 
     match v[r].cmp(entry) {
         Ordering::Less => return r,
@@ -51,26 +51,31 @@ pub(crate) fn search_vec(v: &Vec<Entry>, entry: &Entry) -> usize {
     }
 
     while l <= r {
-        m = (((l + r) / 2) as f64).floor() as usize;
-        if v[m] < *entry {
-            let temp = m.checked_add(1);
-            if temp.is_none() {
-                return 0;
-            }
-            l = temp.unwrap();
-        } else if v[m] > *entry {
-            let temp = m.checked_sub(1);
-            if temp.is_none() {
-                return 0;
-            }
-            r = temp.unwrap();
-        } else {
-            // Shouldn't be possible to get here unless two entries have the same name
-            // which shouldn't happen since names are file names and duplicate files
-            // are not possible;
-            return m as usize;
+        m = (l + r) / 2;
+        match v[m].cmp(entry) {
+            Ordering::Greater => {
+                let temp = m.checked_sub(1);
+                if temp.is_none() {
+                    return 0;
+                }
+                r = temp.unwrap();
+            },
+            Ordering::Less => {
+                let temp = m.checked_add(1);
+                if temp.is_none() {
+                    return 0;
+                }
+                l = temp.unwrap();
+            },
+            Ordering::Equal => {
+                // Shouldn't be possible to get here unless two entries have the same name
+                // which shouldn't happen since names are file names and duplicate files
+                // are not possible;
+                return m as usize;
+            },
         }
     }
+
     // Usually would end up here
     return m as usize;
 }
@@ -120,8 +125,8 @@ impl DirectoryView {
         }
     }
 
-    fn size(entry: PathBuf, meta: &Metadata) -> Arc<RwLock<SizeString>> {
-        let size = Arc::new(RwLock::new(SizeString::new()));
+    fn size(entry: PathBuf, meta: &Metadata) -> SizeString {
+        let mut size = SizeString::new();
         let filetype = meta.file_type();
 
         if filetype.is_dir() {
@@ -138,18 +143,18 @@ impl DirectoryView {
 
             tokio::run(fut);
 
-            size.write().size = Size::Usize(*count.read());
+            size.size = Size::Usize(*count.read());
             size
         } else if filetype.is_file() {
             match binary_prefix(meta.len() as f64) {
                 Standalone(bytes) => {
-                    size.write().size = Size::Float(bytes);
-                    size.write().suffix = "B".to_string();
+                    size.size = Size::Float(bytes);
+                    size.suffix = "B".to_string();
                     size
                 },
                 Prefixed(suffix, bytes) => {
-                    size.write().size = Size::Float(bytes);
-                    size.write().suffix = format!("{}B", suffix.to_string());
+                    size.size = Size::Float(bytes);
+                    size.suffix = format!("{}B", suffix.to_string());
                     size
                 },
             }
@@ -164,8 +169,8 @@ impl DirectoryView {
                         Ok(meta) => meta,
                         Err(_) => return size,
                     };
-                    let size = DirectoryView::size(link, &new_meta);
-                    size.write().prefix = "->";
+                    size = DirectoryView::size(link, &new_meta);
+                    size.prefix = "->";
                     size
                 },
                 Err(_) => size,
@@ -210,7 +215,7 @@ impl DirectoryView {
             };
             let filetype = meta.file_type();
 
-            *s.write() = DirectoryView::size(path.clone(), &meta).read().to_string();
+            *s.write() = DirectoryView::size(path.clone(), &meta).to_string();
             self.has_sizes = true;
         }
     }
@@ -233,9 +238,11 @@ impl DirectoryView {
                     let filetype = meta.file_type();
 
                     if show_size {
-                        let view = v.clone();
+                        let m = meta.clone();
+                        let p = path.clone();
+                        let s = size.clone();
                         thread::spawn(move || {
-                            view.clone().write().get_sizes();
+                            *s.write() = DirectoryView::size(p, &m).to_string();
                         });
                     }
 
@@ -255,9 +262,17 @@ impl DirectoryView {
                     };
 
                     if meta.is_dir() {
-                        insert(&mut v.write().dirs, entry);
+                        // insert(&mut v.write().dirs, entry);
+                        // let len = v.read().dirs.len().checked_sub(1).unwrap_or_else(|| 0);
+                        // v.write().dirs.insert(len, entry);
+                        v.write().dirs.push(entry);
+                        v.write().dirs.sort();
                     } else {
-                        insert(&mut v.write().files, entry);
+                        // insert(&mut v.write().files, entry);
+                        // let len = v.read().files.len().checked_sub(1).unwrap_or_else(|| 0);
+                        // v.write().files.insert(len, entry);
+                        v.write().files.push(entry);
+                        v.write().files.sort();
                     }
 
                     Ok(())

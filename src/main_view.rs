@@ -32,7 +32,7 @@ impl MainView {
             match DirectoryView::try_from(path, true) {
                 Ok(view) => {
                     last.write().disable();
-                    view.write().enable();
+
                     view.write().get_sizes();
                     self.views.push(view);
                 }
@@ -42,7 +42,7 @@ impl MainView {
     }
 
     pub(crate) fn leave_dir(&mut self) {
-        if self.views.len() <= 1 {
+        if self.views.len() < 2 {
             return;
         }
 
