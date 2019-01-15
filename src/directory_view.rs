@@ -188,7 +188,7 @@ impl DirectoryView {
         let focus = self.focus;
         let new_focus = if difference > 0 {
             if focus + difference as usize >= self.total_list_size() {
-                (self.total_list_size() - 1) as usize
+                self.total_list_size().saturating_sub(1)
             } else {
                 focus.saturating_add(difference as usize)
             }
@@ -220,8 +220,8 @@ impl DirectoryView {
         }
     }
 
-    pub(crate) fn try_from(path: PathBuf, show_size: bool) -> Result<Arc<RwLock<Self>>, Error> {
-        let view = Arc::new(RwLock::new(DirectoryView::new(path.clone(), show_size)));
+    pub(crate) fn try_from(path: PathBuf, get_sizes: bool) -> Result<Arc<RwLock<Self>>, Error> {
+        let view = Arc::new(RwLock::new(DirectoryView::new(path.clone(), get_sizes)));
         let v = view.clone();
         thread::spawn(move || {
             let fut = read_dir(path.clone())
@@ -237,7 +237,7 @@ impl DirectoryView {
 
                     let filetype = meta.file_type();
 
-                    if show_size {
+                    if get_sizes {
                         let m = meta.clone();
                         let p = path.clone();
                         let s = size.clone();
@@ -245,6 +245,8 @@ impl DirectoryView {
                             *s.write() = DirectoryView::size(p, &m).to_string();
                         });
                     }
+
+                    v.write().has_sizes = get_sizes;
 
                     let name = match entry.file_name().into_string() {
                         Ok(name) => name,
@@ -262,17 +264,17 @@ impl DirectoryView {
                     };
 
                     if meta.is_dir() {
-                        // insert(&mut v.write().dirs, entry);
+                        insert(&mut v.write().dirs, entry);
                         // let len = v.read().dirs.len().checked_sub(1).unwrap_or_else(|| 0);
                         // v.write().dirs.insert(len, entry);
-                        v.write().dirs.push(entry);
-                        v.write().dirs.sort();
+                        // v.write().dirs.push(entry);
+                        // v.write().dirs.sort();
                     } else {
-                        // insert(&mut v.write().files, entry);
+                        insert(&mut v.write().files, entry);
                         // let len = v.read().files.len().checked_sub(1).unwrap_or_else(|| 0);
                         // v.write().files.insert(len, entry);
-                        v.write().files.push(entry);
-                        v.write().files.sort();
+                        // v.write().files.push(entry);
+                        // v.write().files.sort();
                     }
 
                     Ok(())

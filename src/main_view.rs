@@ -55,13 +55,12 @@ impl MainView {
         }
     }
 
-    fn build_views_history(&mut self, path: PathBuf) {
+    fn build_views_history(&mut self, path: PathBuf, child: Option<PathBuf>) {
         match path.parent() {
             Some(parent_path) => match DirectoryView::try_from(parent_path.to_path_buf(), false) {
                 Ok(parent) => {
-                    parent.write().disable();
                     self.views.insert(0, parent);
-                    self.build_views_history(parent_path.to_path_buf());
+                    self.build_views_history(parent_path.to_path_buf(), Some(path));
                 }
                 Err(_) => {}
             },
@@ -78,7 +77,7 @@ impl TryFrom<PathBuf> for MainView {
         let main = DirectoryView::try_from(path.clone(), true)?;
 
         main_view.views.push(main);
-        main_view.build_views_history(path);
+        main_view.build_views_history(path, None);
 
         Ok(main_view)
     }
