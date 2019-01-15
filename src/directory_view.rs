@@ -200,7 +200,7 @@ impl DirectoryView {
     }
 
     pub(crate) fn get_sizes(&mut self) {
-        for entry in self.dirs.iter().chain(self.files.iter()) {
+        for entry in self.dirs.iter() {
             let s = entry.size.clone();
 
             let path = entry.path.clone();
@@ -211,6 +211,7 @@ impl DirectoryView {
             let filetype = meta.file_type();
 
             *s.write() = DirectoryView::size(path.clone(), &meta).read().to_string();
+            self.has_sizes = true;
         }
     }
 
