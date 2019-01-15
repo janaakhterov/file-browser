@@ -51,7 +51,10 @@ impl MainView {
 
         if let Some(last) = self.views.last() {
             last.write().enable();
+            // FIXME: This needs to be eventually removed. Changing the focus should be 
+            // done whilst adding elements to DirectoryView vecs
             last.write().focus_path(entry.read().path.clone());
+
             if !last.read().has_sizes {
                 last.write().get_sizes();
             }
