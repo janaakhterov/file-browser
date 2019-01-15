@@ -28,7 +28,7 @@ impl MainView {
             }
 
             let path = last.read().dirs[focus].path.clone();
-            match DirectoryView::try_from(path, true) {
+            match DirectoryView::try_from(path, true, None) {
                 Ok(view) => {
                     last.write().disable();
 
@@ -62,7 +62,7 @@ impl MainView {
 
     fn build_views_history(&mut self, path: PathBuf, child: Option<PathBuf>) {
         match path.parent() {
-            Some(parent_path) => match DirectoryView::try_from(parent_path.to_path_buf(), false) {
+            Some(parent_path) => match DirectoryView::try_from(parent_path.to_path_buf(), false, Some(path.clone())) {
                 Ok(parent) => {
                     self.views.insert(0, parent);
                     self.build_views_history(parent_path.to_path_buf(), Some(path));
@@ -75,7 +75,7 @@ impl MainView {
 
     pub(crate) fn try_from(path: PathBuf) -> Result<Self, Error> {
         let mut main_view = MainView::new();
-        let main = DirectoryView::try_from(path.clone(), true)?;
+        let main = DirectoryView::try_from(path.clone(), true, None)?;
 
         main_view.views.push(main);
         main_view.build_views_history(path, None);

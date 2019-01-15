@@ -31,6 +31,8 @@ pub(crate) struct DirectoryView {
     pub(crate) last_offset: RwLock<usize>,
 }
 
+// Finds the position where the element `entry` should go. Returns an error if an entry with the
+// same name is found.
 pub(crate) fn find_insert_position(v: &Vec<Entry>, entry: &Entry) -> Result<usize, Error> {
     if v.len() < 1 {
         return Ok(0);
@@ -183,6 +185,14 @@ impl DirectoryView {
         }
     }
 
+    pub(crate) fn change_focus_to(&mut self, index: usize) {
+        if index >= self.total_list_size().saturating_sub(1) {
+            self.focus = self.total_list_size().saturating_sub(1);
+        } else {
+            self.focus = index;
+        }
+    }
+
     pub(crate) fn change_focus_by(&mut self, difference: i64) {
         let focus = self.focus;
         let new_focus = if difference > 0 {
@@ -219,7 +229,7 @@ impl DirectoryView {
         }
     }
 
-    pub(crate) fn try_from(path: PathBuf, get_sizes: bool) -> Result<Arc<RwLock<Self>>, Error> {
+    pub(crate) fn try_from(path: PathBuf, get_sizes: bool, path_to_focus: Option<PathBuf>) -> Result<Arc<RwLock<Self>>, Error> {
         let view = Arc::new(RwLock::new(DirectoryView::new(path.clone(), get_sizes)));
         let v = view.clone();
         thread::spawn(move || {
@@ -264,16 +274,12 @@ impl DirectoryView {
 
                     if meta.is_dir() {
                         v.write().insert_into_dirs(entry);
-                        // let len = v.read().dirs.len().checked_sub(1).unwrap_or_else(|| 0);
-                        // v.write().dirs.insert(len, entry);
-                        // v.write().dirs.push(entry);
-                        // v.write().dirs.sort();
                     } else {
                         v.write().insert_into_files(entry);
-                        // let len = v.read().files.len().checked_sub(1).unwrap_or_else(|| 0);
-                        // v.write().files.insert(len, entry);
-                        // v.write().files.push(entry);
-                        // v.write().files.sort();
+                    }
+
+                    if let Some(path_to_focus) = &path_to_focus {
+                        v.write().focus_path(path_to_focus.clone());
                     }
 
                     Ok(())
