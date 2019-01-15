@@ -20,7 +20,7 @@ impl MainView {
 
     pub(crate) fn enter_dir(&mut self) {
         if let Some(last) = &self.views.last() {
-            let focus = last.read().focus();
+            let focus = last.read().focus;
             // This is temporary, only allows you to enter directories
             // Cannot open files, yet.
             if focus >= last.read().dirs.len() {

@@ -25,10 +25,10 @@ pub(crate) struct DirectoryView {
     pub(crate) dirs: Vec<Entry>,
     pub(crate) files: Vec<Entry>,
     pub(crate) has_sizes: bool,
-    focus: usize,
-    enabled: bool,
-    align: Align,
-    last_offset: RwLock<usize>,
+    pub(crate) focus: usize,
+    pub(crate) enabled: bool,
+    pub(crate) align: Align,
+    pub(crate) last_offset: RwLock<usize>,
 }
 
 pub(crate) fn find_insert_position(v: &Vec<Entry>, entry: &Entry) -> Result<usize, Error> {
@@ -67,10 +67,7 @@ pub(crate) fn find_insert_position(v: &Vec<Entry>, entry: &Entry) -> Result<usiz
                 l = temp.unwrap();
             },
             Ordering::Equal => {
-                // Shouldn't be possible to get here unless two entries have the same name
-                // which shouldn't happen since names are file names and duplicate files
-                // are not possible;
-                return Ok(0);
+                bail!("Cannot be equal");
             },
         }
         m = (l + r) / 2;
@@ -90,12 +87,6 @@ pub(crate) fn find_insert_position(v: &Vec<Entry>, entry: &Entry) -> Result<usiz
 
 }
 
-pub(crate) fn insert(v: &mut Vec<Entry>, entry: Entry) {
-    match find_insert_position(&v, &entry) {
-        Ok(index) => v.insert(index, entry),
-        Err(_) => {},
-    }
-}
 
 impl DirectoryView {
     fn new(path: PathBuf, has_sizes: bool) -> Self {
@@ -192,10 +183,6 @@ impl DirectoryView {
         }
     }
 
-    pub(crate) fn focus(&self) -> usize {
-        self.focus
-    }
-
     pub(crate) fn change_focus_by(&mut self, difference: i64) {
         let focus = self.focus;
         let new_focus = if difference > 0 {
@@ -276,13 +263,13 @@ impl DirectoryView {
                     };
 
                     if meta.is_dir() {
-                        insert(&mut v.write().dirs, entry);
+                        v.write().insert_into_dirs(entry);
                         // let len = v.read().dirs.len().checked_sub(1).unwrap_or_else(|| 0);
                         // v.write().dirs.insert(len, entry);
                         // v.write().dirs.push(entry);
                         // v.write().dirs.sort();
                     } else {
-                        insert(&mut v.write().files, entry);
+                        v.write().insert_into_files(entry);
                         // let len = v.read().files.len().checked_sub(1).unwrap_or_else(|| 0);
                         // v.write().files.insert(len, entry);
                         // v.write().files.push(entry);
@@ -298,6 +285,34 @@ impl DirectoryView {
 
         Ok(view)
     }
+
+    pub(crate) fn insert_into_dirs(&mut self, entry: Entry) {
+        match find_insert_position(&self.dirs, &entry) {
+            Ok(index) => {
+                self.dirs.insert(index, entry);
+
+                // Maintain focus on last focused entry
+                if !self.enabled && index <= self.focus {
+                    self.change_focus_by(1);
+                }
+            },
+            Err(_) => {},
+        }
+    }
+
+    pub(crate) fn insert_into_files(&mut self, entry: Entry) {
+        match find_insert_position(&self.files, &entry) {
+            Ok(index) => {
+                self.files.insert(index, entry);
+
+                // Maintain focus on last focused entry
+                if !self.enabled && index <= self.focus {
+                    self.change_focus_by(1);
+                }
+            },
+            Err(_) => {},
+        }
+    }
 }
 
 impl View for DirectoryView {
@@ -305,7 +320,7 @@ impl View for DirectoryView {
         let height = self.dirs.len() + self.files.len();
         let offset = self.align.v.get_offset(height, printer.size.y);
         let printer = &printer.offset((0, offset));
-        let focus = self.focus();
+        let focus = self.focus;
         let enabled = self.is_enabled();
 
         if height == 0 {
