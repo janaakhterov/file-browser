@@ -46,9 +46,12 @@ impl MainView {
             return;
         }
 
-        self.views.pop();
+        // Cannot fail
+        let entry = self.views.pop().unwrap().clone();
+
         if let Some(last) = self.views.last() {
             last.write().enable();
+            last.write().focus_path(entry.read().path.clone());
             if !last.read().has_sizes {
                 last.write().get_sizes();
             }

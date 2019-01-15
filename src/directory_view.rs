@@ -6,6 +6,7 @@ use cursive::{
     Printer,
 };
 use failure::Error;
+use failure::bail;
 use std::{cmp, result::Result};
 #[macro_use]
 use crate::print_full_width_with_selection;
@@ -31,9 +32,9 @@ pub(crate) struct DirectoryView {
     last_offset: RwLock<usize>,
 }
 
-pub(crate) fn search_vec(v: &Vec<Entry>, entry: &Entry) -> usize {
+pub(crate) fn find_insert_position(v: &Vec<Entry>, entry: &Entry) -> Result<usize, Error> {
     if v.len() < 1 {
-        return 0;
+        return Ok(0);
     }
 
     let mut l: usize = 0;
@@ -41,12 +42,12 @@ pub(crate) fn search_vec(v: &Vec<Entry>, entry: &Entry) -> usize {
     let mut m: usize = (l + r)/2;
 
     match v[r].cmp(entry) {
-        Ordering::Less => return r + 1,
+        Ordering::Less => return Ok(r + 1),
         _ => {}
     }
 
     match v[0].cmp(entry) {
-        Ordering::Greater => return 0,
+        Ordering::Greater => return Ok(0),
         _ => {}
     }
 
@@ -55,14 +56,14 @@ pub(crate) fn search_vec(v: &Vec<Entry>, entry: &Entry) -> usize {
             Ordering::Greater => {
                 let temp = m.checked_sub(1);
                 if temp.is_none() {
-                    return 0;
+                    return Ok(0);
                 }
                 r = temp.unwrap();
             },
             Ordering::Less => {
                 let temp = m.checked_add(1);
                 if temp.is_none() {
-                    return 0;
+                    return Ok(0);
                 }
                 l = temp.unwrap();
             },
@@ -70,7 +71,7 @@ pub(crate) fn search_vec(v: &Vec<Entry>, entry: &Entry) -> usize {
                 // Shouldn't be possible to get here unless two entries have the same name
                 // which shouldn't happen since names are file names and duplicate files
                 // are not possible;
-                return 0;
+                return Ok(0);
             },
         }
         m = (l + r) / 2;
@@ -78,21 +79,23 @@ pub(crate) fn search_vec(v: &Vec<Entry>, entry: &Entry) -> usize {
 
     match v[m].cmp(entry) {
         Ordering::Greater => {
-            return m;
+            Ok(m)
         },
         Ordering::Less => {
-            return m + 1;
+            Ok(m + 1)
         },
         Ordering::Equal => {
-            return 0;
+            bail!("Cannot be equal");
         }
     }
 
 }
 
 pub(crate) fn insert(v: &mut Vec<Entry>, entry: Entry) {
-    let index = search_vec(&v, &entry);
-    v.insert(index, entry);
+    match find_insert_position(&v, &entry) {
+        Ok(index) => v.insert(index, entry),
+        Err(_) => {},
+    }
 }
 
 impl DirectoryView {
@@ -223,7 +226,7 @@ impl DirectoryView {
                 Ok(meta) => meta,
                 Err(err) => return,
             };
-            let filetype = meta.file_type();
+            // let filetype = meta.file_type();
 
             *s.write() = DirectoryView::size(path.clone(), &meta).to_string();
             self.has_sizes = true;
