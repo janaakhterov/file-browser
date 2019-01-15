@@ -32,6 +32,16 @@ impl SizeString {
     }
 
     pub(crate) fn to_string(&self) -> String {
-        format!("{} {:.2} {}", self.prefix, self.size.to_string(), self.suffix)
+        let mut s = String::new();
+        if self.prefix.len() > 0 {
+            s.push_str(self.prefix);
+            s.push(' ');
+        }
+        s.push_str(&self.size.to_string());
+        if self.suffix.len() > 0 {
+            s.push(' ');
+            s.push_str(&self.suffix);
+        }
+        s
     }
 }

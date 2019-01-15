@@ -6,6 +6,7 @@ use cursive::{
     Printer,
 };
 use failure::Error;
+use failure::err_msg;
 use failure::bail;
 use std::{cmp, result::Result};
 #[macro_use]
@@ -130,58 +131,51 @@ impl DirectoryView {
         }
     }
 
-    fn size(entry: PathBuf, meta: &Metadata) -> SizeString {
+    fn size(entry: PathBuf, meta: &Metadata) -> Result<SizeString, Error> {
         let mut size = SizeString::new();
         let filetype = meta.file_type();
 
         if filetype.is_dir() {
-            let count = Arc::new(RwLock::new(0 as usize));
-            let c = count.clone();
-            let fut = read_dir(entry)
-                .flatten_stream()
-                .for_each(move |_| {
-                    let cur = *c.read();
-                    *c.write() = cur + 1;
-                    Ok(())
-                })
-                .map_err(|_| {});
-
-            tokio::run(fut);
-
-            size.size = Size::Usize(*count.read());
-            size
+            // Using std version because I need to know if it  failed to read the directory
+            // Don't know how to do that with tokio_fs::read_dir
+            let count = std::fs::read_dir(entry)?.count();
+            size.size = Size::Usize(count);
+            Ok(size)
         } else if filetype.is_file() {
             match binary_prefix(meta.len() as f64) {
                 Standalone(bytes) => {
                     size.size = Size::Float(bytes);
                     size.suffix = "B".to_string();
-                    size
+                    Ok(size)
                 },
                 Prefixed(suffix, bytes) => {
                     size.size = Size::Float(bytes);
                     size.suffix = format!("{}B", suffix.to_string());
-                    size
+                    Ok(size)
                 },
             }
         } else if filetype.is_symlink() {
             match read_link(entry.clone()).wait() {
                 Ok(link) => {
                     if link == entry {
-                        return size;
+                        return Ok(size);
                     }
 
                     let new_meta = match metadata(link.clone()).wait() {
                         Ok(meta) => meta,
-                        Err(_) => return size,
+                        Err(_) => return Ok(size),
                     };
-                    size = DirectoryView::size(link, &new_meta);
+                    match DirectoryView::size(link, &new_meta) {
+                        Ok(v) => size = v,
+                        Err(_) => bail!("Failed to get size from link"),
+                    }
                     size.prefix = "->";
-                    size
+                    Ok(size)
                 },
-                Err(_) => size,
+                Err(_) => bail!("Failed to read link"),
             }
         } else {
-            size
+            Ok(size)
         }
     }
 
@@ -220,11 +214,16 @@ impl DirectoryView {
             let path = entry.path.clone();
             let meta = match path.clone().metadata() {
                 Ok(meta) => meta,
-                Err(err) => return,
+                Err(err) => {
+                    *s.write() = "?".to_string();
+                    return;
+                },
             };
-            // let filetype = meta.file_type();
 
-            *s.write() = DirectoryView::size(path.clone(), &meta).to_string();
+            match DirectoryView::size(path.clone(), &meta) {
+                Ok(size) => *s.write() = size.to_string(),
+                Err(_) => *s.write() = "?".to_string(),
+            }
             self.has_sizes = true;
         }
     }
@@ -251,7 +250,10 @@ impl DirectoryView {
                         let p = path.clone();
                         let s = size.clone();
                         thread::spawn(move || {
-                            *s.write() = DirectoryView::size(p, &m).to_string();
+                            match DirectoryView::size(p, &m) {
+                                Ok(size) => *s.write() = size.to_string(),
+                                Err(_) => *s.write() = "?".to_string(),
+                            }
                         });
                     }
 
