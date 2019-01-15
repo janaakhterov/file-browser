@@ -1,5 +1,4 @@
 use crate::DirectoryView;
-use core::convert::TryFrom;
 use cursive::{
     event::{Event, EventResult},
     vec::Vec2,
@@ -73,12 +72,8 @@ impl MainView {
             None => return,
         }
     }
-}
 
-impl TryFrom<PathBuf> for MainView {
-    type Error = Error;
-
-    fn try_from(path: PathBuf) -> Result<Self, Self::Error> {
+    pub(crate) fn try_from(path: PathBuf) -> Result<Self, Error> {
         let mut main_view = MainView::new();
         let main = DirectoryView::try_from(path.clone(), true)?;
 
@@ -88,6 +83,7 @@ impl TryFrom<PathBuf> for MainView {
         Ok(main_view)
     }
 }
+
 
 impl View for MainView {
     fn draw(&self, printer: &Printer) {

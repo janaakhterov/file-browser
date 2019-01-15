@@ -11,7 +11,6 @@ use std::{cmp, result::Result};
 #[macro_use]
 use crate::print_full_width_with_selection;
 use crate::{color_pair::ColorPair, entry::Entry, print_empty, print_full_width};
-use core::convert::TryFrom;
 use cursive::theme::{BaseColor, Color, ColorStyle};
 use futures::{future::Future, stream::Stream};
 use number_prefix::{binary_prefix, Prefixed, Standalone};

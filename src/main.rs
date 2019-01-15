@@ -1,4 +1,3 @@
-#![feature(try_from)]
 #[macro_use]
 extern crate lazy_static;
 
@@ -7,7 +6,7 @@ use config::Config;
 use cursive::{views::BoxView, Cursive};
 use failure::Error;
 use parking_lot::Mutex;
-use std::{convert::TryFrom, env::current_dir, path::Path, result::Result};
+use std::{env::current_dir, path::Path, result::Result};
 
 mod color_pair;
 mod directory_view;
