@@ -37,11 +37,11 @@ pub(crate) fn search_vec(v: &Vec<Entry>, entry: &Entry) -> usize {
     }
 
     let mut l: usize = 0;
-    let mut m: usize = 0;
     let mut r: usize = v.len() - 1;
+    let mut m: usize = (l + r)/2;
 
     match v[r].cmp(entry) {
-        Ordering::Less => return r,
+        Ordering::Less => return r + 1,
         _ => {}
     }
 
@@ -50,8 +50,7 @@ pub(crate) fn search_vec(v: &Vec<Entry>, entry: &Entry) -> usize {
         _ => {}
     }
 
-    while l <= r {
-        m = (l + r) / 2;
+    while l < r {
         match v[m].cmp(entry) {
             Ordering::Greater => {
                 let temp = m.checked_sub(1);
@@ -71,13 +70,24 @@ pub(crate) fn search_vec(v: &Vec<Entry>, entry: &Entry) -> usize {
                 // Shouldn't be possible to get here unless two entries have the same name
                 // which shouldn't happen since names are file names and duplicate files
                 // are not possible;
-                return m as usize;
+                return 0;
             },
+        }
+        m = (l + r) / 2;
+    }
+
+    match v[m].cmp(entry) {
+        Ordering::Greater => {
+            return m;
+        },
+        Ordering::Less => {
+            return m + 1;
+        },
+        Ordering::Equal => {
+            return 0;
         }
     }
 
-    // Usually would end up here
-    return m as usize;
 }
 
 pub(crate) fn insert(v: &mut Vec<Entry>, entry: Entry) {
