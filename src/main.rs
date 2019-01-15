@@ -15,6 +15,7 @@ mod entry;
 mod main_view;
 #[macro_use]
 mod macros;
+mod size;
 
 lazy_static! {
     static ref SETTINGS: Mutex<Config> = {

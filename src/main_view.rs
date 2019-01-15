@@ -33,6 +33,7 @@ impl MainView {
                 Ok(view) => {
                     last.write().disable();
                     view.write().enable();
+                    view.write().get_sizes();
                     self.views.push(view);
                 }
                 Err(_) => {}

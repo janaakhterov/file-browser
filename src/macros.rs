@@ -40,7 +40,7 @@ macro_rules! print_empty(
         $printer.with_color(
             $color,
             |printer| {
-                printer.print((0, 0), "Empty");
+                printer.print((0, 0), "empty");
         });
     }}
 );

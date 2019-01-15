@@ -17,6 +17,8 @@ use number_prefix::{binary_prefix, Prefixed, Standalone};
 use parking_lot::RwLock;
 use std::{cmp::Ordering, fs::Metadata, path::PathBuf, sync::Arc, thread};
 use tokio_fs::{metadata, read_dir, read_link};
+use crate::size::Size;
+use crate::size::SizeString;
 
 pub(crate) struct DirectoryView {
     pub(crate) path: PathBuf,
@@ -118,7 +120,8 @@ impl DirectoryView {
         }
     }
 
-    fn size(entry: PathBuf, meta: &Metadata) -> String {
+    fn size(entry: PathBuf, meta: &Metadata) -> Arc<RwLock<SizeString>> {
+        let size = Arc::new(RwLock::new(SizeString::new()));
         let filetype = meta.file_type();
 
         if filetype.is_dir() {
@@ -135,34 +138,41 @@ impl DirectoryView {
 
             tokio::run(fut);
 
-            match Arc::try_unwrap(count) {
-                Ok(count) => count.into_inner().to_string(),
-                Err(_) => "".to_string(),
-            }
+            size.write().size = Size::Usize(*count.read());
+            size
         } else if filetype.is_file() {
             match binary_prefix(meta.len() as f64) {
-                Standalone(bytes) => format!("{} B", bytes),
-                Prefixed(prefix, n) => format!("{:.0} {}B", n, prefix),
+                Standalone(bytes) => {
+                    size.write().size = Size::Float(bytes);
+                    size.write().suffix = "B".to_string();
+                    size
+                },
+                Prefixed(suffix, bytes) => {
+                    size.write().size = Size::Float(bytes);
+                    size.write().suffix = format!("{}B", suffix.to_string());
+                    size
+                },
             }
         } else if filetype.is_symlink() {
             match read_link(entry.clone()).wait() {
                 Ok(link) => {
                     if link == entry {
-                        return "Recursive Link".to_string();
+                        return size;
                     }
 
                     let new_meta = match metadata(link.clone()).wait() {
                         Ok(meta) => meta,
-                        Err(_) => return "Broken Link".to_string(),
+                        Err(_) => return size,
                     };
-                    DirectoryView::size(link, &new_meta)
+                    let size = DirectoryView::size(link, &new_meta);
+                    size.write().prefix = "->";
+                    size
                 },
-                Err(_) => "Broken Link".to_string(),
+                Err(_) => size,
             }
         } else {
-            "Error".to_string()
+            size
         }
-        // "".to_string()
     }
 
     pub(crate) fn focus(&self) -> usize {
@@ -196,17 +206,11 @@ impl DirectoryView {
             let path = entry.path.clone();
             let meta = match path.clone().metadata() {
                 Ok(meta) => meta,
-                Err(_) => return,
+                Err(err) => return,
             };
             let filetype = meta.file_type();
 
-            let size = DirectoryView::size(path.clone(), &meta);
-            let size = if filetype.is_symlink() {
-                format!("-> {}", size)
-            } else {
-                size
-            };
-            *s.write() = size;
+            *s.write() = DirectoryView::size(path.clone(), &meta).read().to_string();
         }
     }
 
