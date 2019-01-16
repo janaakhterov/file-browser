@@ -34,7 +34,7 @@ fn main() -> Result<(), Error> {
     let mut siv = Cursive::ncurses();
     siv.set_fps(60);
 
-    siv.load_theme_file("styles.toml").unwrap();
+    // siv.load_theme_file("styles.toml").unwrap();
 
     // let dirs_view = BoxView::with_full_screen(MainView::try_from(current_dir()?)?);
     let dirs_view = BoxView::with_full_screen(MainView::try_from(Path::new("/home/daniel/Test").to_path_buf())?);
