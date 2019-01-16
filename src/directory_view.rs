@@ -144,7 +144,7 @@ impl DirectoryView {
         } else if filetype.is_file() {
             match binary_prefix(meta.len() as f64) {
                 Standalone(bytes) => {
-                    size.size = Size::Float(bytes);
+                    size.size = Size::Usize(bytes as usize);
                     size.suffix = "B".to_string();
                     Ok(size)
                 },
