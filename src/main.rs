@@ -15,6 +15,7 @@ mod main_view;
 #[macro_use]
 mod macros;
 mod size;
+mod view_ratio;
 
 lazy_static! {
     static ref SETTINGS: Mutex<Config> = {
@@ -36,8 +37,8 @@ fn main() -> Result<(), Error> {
 
     siv.load_theme_file("styles.toml").unwrap();
 
-    // let dirs_view = BoxView::with_full_screen(MainView::try_from(current_dir()?)?);
-    let dirs_view = BoxView::with_full_screen(MainView::try_from(Path::new("/home/daniel/Test").to_path_buf())?);
+    let dirs_view = BoxView::with_full_screen(MainView::try_from(current_dir()?)?);
+    // let dirs_view = BoxView::with_full_screen(MainView::try_from(Path::new("/home/daniel/Test").to_path_buf())?);
 
     siv.add_fullscreen_layer(dirs_view);
     siv.add_global_callback('q', |s| s.quit());

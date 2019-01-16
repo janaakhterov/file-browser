@@ -8,14 +8,19 @@ use cursive::{
 use failure::Error;
 use parking_lot::RwLock;
 use std::{path::PathBuf, sync::Arc};
+use crate::view_ratio::ViewRatio;
 
 pub(crate) struct MainView {
     views: Vec<Arc<RwLock<DirectoryView>>>,
+    ratios: ViewRatio,
 }
 
 impl MainView {
     fn new() -> Self {
-        MainView { views: Vec::new() }
+        MainView { 
+            views: Vec::new(),
+            ratios: ViewRatio::default(),
+        }
     }
 
     pub(crate) fn enter_dir(&mut self) {
