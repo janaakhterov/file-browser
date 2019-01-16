@@ -87,11 +87,14 @@ impl MainView {
 
 impl View for MainView {
     fn draw(&self, printer: &Printer) {
+        let width = printer.size.x / self.ratios.sum() as usize;
         match self.views.len() {
             0 => return,
-            1 => self.views[0].read().draw(printer),
+            1 => {
+                let main_printer = printer.offset((width, 0)).cropped((width * (self.ratios.main as usize), printer.size.y));
+                self.views[0].read().draw(&main_printer);
+            },
             _ => {
-                let width = printer.size.x / self.ratios.sum() as usize;
                 let parent_printer = printer.offset((0, 0)).cropped((width * (self.ratios.parent as usize), printer.size.y));
                 let main_printer = printer.offset((width, 0)).cropped((width * (self.ratios.main as usize), printer.size.y));
 
