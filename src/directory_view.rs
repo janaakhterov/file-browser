@@ -138,7 +138,9 @@ impl DirectoryView {
                 },
                 Prefixed(suffix, bytes) => {
                     size.size = Size::Float(bytes);
-                    size.suffix = suffix.to_string()[0..1].to_string();
+                    let mut suffix = suffix.to_string();
+                    suffix.split_off(0);
+                    size.suffix = suffix;
                     Ok(size)
                 },
             }
