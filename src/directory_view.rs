@@ -105,18 +105,6 @@ impl DirectoryView {
         }
     }
 
-    pub(crate) fn disable(&mut self) {
-        self.enabled = false;
-    }
-
-    pub(crate) fn enable(&mut self) {
-        self.enabled = true;
-    }
-
-    pub(crate) fn is_enabled(&self) -> bool {
-        self.enabled
-    }
-
     pub(crate) fn focus_path(&mut self, path: PathBuf) {
         for (i, entry) in self.dirs.iter().enumerate() {
             if entry.path == path {
@@ -328,7 +316,7 @@ impl View for DirectoryView {
         let offset = self.align.v.get_offset(height, printer.size.y);
         let printer = &printer.offset((0, offset));
         let focus = self.focus;
-        let enabled = self.is_enabled();
+        let enabled = self.enabled;
 
         if height == 0 {
             let color = ColorStyle::new(Color::Dark(BaseColor::White), Color::Dark(BaseColor::Red));

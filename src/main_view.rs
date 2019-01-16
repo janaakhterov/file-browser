@@ -35,7 +35,7 @@ impl MainView {
             let path = last.read().dirs[focus].path.clone();
             match DirectoryView::try_from(path, true, None) {
                 Ok(view) => {
-                    last.write().disable();
+                    last.write();
 
                     view.write().get_sizes();
                     self.views.push(view);
@@ -53,7 +53,7 @@ impl MainView {
         self.views.pop();
 
         if let Some(last) = self.views.last() {
-            last.write().enable();
+            last.write().enabled = true;
             if !last.read().has_sizes {
                 last.write().get_sizes();
             }
@@ -91,9 +91,9 @@ impl View for MainView {
             0 => return,
             1 => self.views[0].read().draw(printer),
             _ => {
-                let width = printer.size.x / 2;
-                let parent_printer = printer.offset((0, 0)).cropped((width, printer.size.y));
-                let main_printer = printer.offset((width, 0)).cropped((width, printer.size.y));
+                let width = printer.size.x / self.ratios.sum() as usize;
+                let parent_printer = printer.offset((0, 0)).cropped((width * (self.ratios.parent as usize), printer.size.y));
+                let main_printer = printer.offset((width, 0)).cropped((width * (self.ratios.main as usize), printer.size.y));
 
                 self.views[self.views.len() - 1].read().draw(&main_printer);
                 self.views[self.views.len() - 2]
