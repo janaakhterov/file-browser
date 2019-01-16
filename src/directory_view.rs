@@ -6,7 +6,6 @@ use cursive::{
     Printer,
 };
 use failure::Error;
-use failure::err_msg;
 use failure::bail;
 use std::{cmp, result::Result};
 #[macro_use]
@@ -22,6 +21,7 @@ use crate::size::Size;
 use crate::size::SizeString;
 
 pub(crate) struct DirectoryView {
+    #[allow(dead_code)]
     pub(crate) path: PathBuf,
     pub(crate) dirs: Vec<Entry>,
     pub(crate) files: Vec<Entry>,
@@ -179,6 +179,7 @@ impl DirectoryView {
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn change_focus_to(&mut self, index: usize) {
         if index >= self.total_list_size().saturating_sub(1) {
             self.focus = self.total_list_size().saturating_sub(1);
@@ -214,7 +215,7 @@ impl DirectoryView {
             let path = entry.path.clone();
             let meta = match path.clone().metadata() {
                 Ok(meta) => meta,
-                Err(err) => {
+                Err(_) => {
                     *s.write() = "?".to_string();
                     return;
                 },
@@ -242,8 +243,6 @@ impl DirectoryView {
                         Ok(meta) => meta,
                         Err(_) => return Ok(()),
                     };
-
-                    let filetype = meta.file_type();
 
                     if get_sizes {
                         let m = meta.clone();

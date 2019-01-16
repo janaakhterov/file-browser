@@ -45,8 +45,7 @@ impl MainView {
             return;
         }
 
-        // Cannot fail
-        let entry = self.views.pop().unwrap().clone();
+        self.views.pop();
 
         if let Some(last) = self.views.last() {
             last.write().enable();
@@ -56,7 +55,7 @@ impl MainView {
         }
     }
 
-    fn build_views_history(&mut self, path: PathBuf, child: Option<PathBuf>) {
+    fn build_views_history(&mut self, path: PathBuf, _child: Option<PathBuf>) {
         match path.parent() {
             Some(parent_path) => match DirectoryView::try_from(parent_path.to_path_buf(), false, Some(path.clone())) {
                 Ok(parent) => {
