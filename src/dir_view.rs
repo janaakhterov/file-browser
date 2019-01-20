@@ -8,6 +8,11 @@ use std::fs::read_dir;
 use std::rc::Rc;
 use std::cell::Cell;
 
+use cursive::event::EventResult;
+use cursive::event::Event;
+use cursive::event::Key;
+use cursive::theme::ColorStyle;
+
 pub struct DirView {
     pub path: PathBuf,
     pub entries: Vec<Entry>,
@@ -48,6 +53,21 @@ impl DirView {
             last_offset: Rc::new(Cell::new(0)),
         })
     }
+
+    pub fn change_selected_by(&mut self, difference: i64) {
+        let focus = if difference > 0 {
+            if self.selected.saturating_add(difference as usize) >= self.entries.len() {
+                self.entries.len().saturating_sub(1)
+            } else {
+                self.selected.saturating_add(difference as usize)
+            }
+        } else if difference < 0 {
+            self.selected.saturating_sub(difference.abs() as usize)
+        } else {
+            self.selected
+        };
+        self.selected = focus;
+    }
 }
 
 impl View for DirView {
@@ -63,11 +83,36 @@ impl View for DirView {
         self.last_offset.set(start);
 
         for i in 0..printer.size.y {
-            let element = i + start;
+            let element = start.saturating_add(i);
             if element < self.entries.len() {
-                printer.print((0, i), &self.entries[element].filename);
+                if element == self.selected {
+                    printer.with_color(
+                        ColorStyle::highlight(),
+                        |printer| printer.print((0, i), &self.entries[element].filename));
+                } else {
+                    printer.print((0, i), &self.entries[element].filename);
+                }
             }
         }
+    }
+
+    fn on_event(&mut self, event: Event) -> EventResult {
+        match event {
+            Event::Key(Key::Up) => self.change_selected_by(-1),
+            Event::Key(Key::Down) => self.change_selected_by(1),
+            Event::Key(Key::PageUp) => self.change_selected_by(-10),
+            Event::Key(Key::PageDown) => self.change_selected_by(10),
+            Event::Key(Key::Home) => self.selected = 0,
+            Event::Key(Key::End) => self.selected = self.entries.len().saturating_sub(1),
+            Event::Char(c) => match c {
+                'j' => self.change_selected_by(1),
+                'k' => self.change_selected_by(-1),
+                _ => return EventResult::Ignored,
+            },
+            _ => return EventResult::Ignored,
+        }
+
+        EventResult::Consumed(None)
     }
 
     fn required_size(&mut self, constrait: Vec2) -> Vec2 {
