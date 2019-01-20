@@ -43,13 +43,24 @@ impl DirView {
                 let metadata = poll_fn(move || entry.poll_metadata()).wait().unwrap();
                 let filetype = metadata.file_type();
 
-                Entry {
+                let first_char = match filename.chars().next() {
+                    Some(v) => v,
+                    None => return None,
+                };
+
+                if !SETTINGS.show_hidden && first_char == '.' {
+                    return None;
+                }
+
+                Some(Entry {
                     path,
                     metadata,
                     filetype,
                     filename,
-                }
+                })
             })
+            .filter(|entry| { entry.is_some() })
+            .map(|entry| { entry.unwrap() })
             .collect();
         let mut entries = rt.block_on(entries)?;
         entries.sort();
@@ -123,7 +134,10 @@ impl View for DirView {
                 if cur == self.selected {
                     printer.with_color(
                         ColorStyle::highlight(),
-                        |printer| printer.print((0, j), &element.filename));
+                        |printer| {
+                            printer.print((0, j), &element.filename);
+                            printer.print_hline((element.filename.len(), j), printer.size.x - element.filename.len(), &" ");
+                        });
                 } else {
                     printer.print((0, j), &element.filename);
                 }
