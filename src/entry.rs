@@ -1,23 +1,30 @@
-use crate::color_pair::ColorPair;
-use parking_lot::RwLock;
-use std::{cmp::Ordering, path::PathBuf, sync::Arc};
+use std::path::PathBuf;
+use std::fs::Metadata;
+use std::fs::FileType;
+use std::cmp::Ordering;
 
-pub(crate) struct Entry {
-    pub(crate) path: PathBuf,
-    pub(crate) name: String,
-    pub(crate) size: Arc<RwLock<String>>,
-    pub(crate) color: ColorPair,
+pub struct Entry {
+    pub path: PathBuf,
+    pub metadata: Metadata,
+    pub filetype: FileType,
+    pub filename: String,
 }
 
 impl Ord for Entry {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.name.cmp(&other.name)
+        if self.filetype.is_dir() && !other.filetype.is_dir() {
+            Ordering::Less
+        } else if !self.filetype.is_dir() && other.filetype.is_dir() {
+            Ordering::Greater
+        } else {
+            self.filename.cmp(&other.filename)
+        }
     }
 }
 
 impl PartialEq for Entry {
     fn eq(&self, other: &Self) -> bool {
-        self.name.eq(&other.name)
+        self.filetype == other.filetype && self.filename == other.filename
     }
 }
 
@@ -25,6 +32,12 @@ impl Eq for Entry {}
 
 impl PartialOrd for Entry {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
+        if self.filetype.is_dir() && !other.filetype.is_dir() {
+            Some(Ordering::Less)
+        } else if !self.filetype.is_dir() && other.filetype.is_dir() {
+            Some(Ordering::Greater)
+        } else {
+            Some(self.filename.cmp(&other.filename))
+        }
     }
 }

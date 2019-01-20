@@ -1,24 +1,17 @@
 #[macro_use]
 extern crate lazy_static;
 
-use crate::{directory_view::DirectoryView, main_view::MainView};
+use crate::dir_view::DirView;
 use config::Config;
 use cursive::{views::BoxView, Cursive};
 use failure::Error;
-use parking_lot::Mutex;
-use std::{env::current_dir, path::Path, result::Result};
+use std::{env::current_dir, result::Result};
 
-mod color_pair;
-mod directory_view;
 mod entry;
-mod main_view;
-#[macro_use]
-mod macros;
-mod size;
-mod view_ratio;
+mod dir_view;
 
 lazy_static! {
-    static ref SETTINGS: Mutex<Config> = {
+    static ref SETTINGS: Config = {
         let mut config = Config::new();
 
         // TODO: Print error, but don't quit app
@@ -27,7 +20,7 @@ lazy_static! {
             Err(_) => {}
         }
 
-        Mutex::new(config)
+        config
     };
 }
 
@@ -37,8 +30,8 @@ fn main() -> Result<(), Error> {
 
     siv.load_theme_file("styles.toml").unwrap();
 
-    let dirs_view = BoxView::with_full_screen(MainView::try_from(current_dir()?)?);
-    // let dirs_view = BoxView::with_full_screen(MainView::try_from(Path::new("/home/daniel/Test").to_path_buf())?);
+    let dirs_view = BoxView::with_full_screen(DirView::from(current_dir()?)?);
+    // let dirs_view = BoxView::with_full_screen(MainView::try_from(Path::new("/usr/bin").to_path_buf())?);
 
     siv.add_fullscreen_layer(dirs_view);
     siv.add_global_callback('q', |s| s.quit());

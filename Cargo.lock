@@ -147,6 +147,7 @@ dependencies = [
 [[package]]
 name = "cursive"
 version = "0.10.1-alpha.0"
+source = "git+https://github.com/danielakhterov/Cursive#eba938335d86c3e4ca7ff63220704ce872834d8e"
 dependencies = [
  "crossbeam-channel 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "enum-map 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -229,7 +230,7 @@ name = "file_browser"
 version = "0.1.0"
 dependencies = [
  "config 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "cursive 0.10.1-alpha.0",
+ "cursive 0.10.1-alpha.0 (git+https://github.com/danielakhterov/Cursive)",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1085,6 +1086,7 @@ dependencies = [
 "checksum crossbeam-deque 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)" = "05e44b8cf3e1a625844d1750e1f7820da46044ff6d28f4d43e455ba3e5bb2c13"
 "checksum crossbeam-epoch 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f10a4f8f409aaac4b16a5474fb233624238fcdeefb9ba50d5ea059aab63ba31c"
 "checksum crossbeam-utils 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)" = "41ee4864f4797060e52044376f7d107429ce1fb43460021b126424b7180ee21a"
+"checksum cursive 0.10.1-alpha.0 (git+https://github.com/danielakhterov/Cursive)" = "<none>"
 "checksum enum-map 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "caa1769f019df7ccd8f9a741d2d608309688d0f1bd8a8747c14ac993660c761c"
 "checksum enum-map-derive 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f915c8ef505ce27b6fa51515463938aa2e9135081fefc93aef786539a646a365"
 "checksum enumset 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)" = "410e0c8f67e79dcc08cb844c629e2845e9846b464e059b7f3c9d5311b4151d8d"
