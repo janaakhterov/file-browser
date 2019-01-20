@@ -11,6 +11,11 @@ config = "0.9.2"
 number_prefix = "0.2.8"
 parking_lot = "0.7.1"
 lazy_static = "1.2.0"
-tokio-fs = "0.1.5"
-futures = "0.1.25"
 tokio = "0.1.14"
+# tokio-async-await = "0.1.5"
+tokio-fs = "0.1.5"
+futures01 = { version = "0.1.25", package = "futures" }
+futures = { version = "0.3.0-alpha.12", package = "futures-preview" }
+futures-cpupool = "0.1.8"
+serde = "1.0.85"
+serde_derive = "1.0.85"

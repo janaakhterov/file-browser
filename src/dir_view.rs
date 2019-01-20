@@ -1,10 +1,10 @@
+use crate::SETTINGS;
 use failure::Error;
 use std::path::PathBuf;
 use crate::entry::Entry;
 use cursive::vec::Vec2;
 use cursive::view::View;
 use cursive::Printer;
-use std::fs::read_dir;
 use std::rc::Rc;
 use std::cell::Cell;
 
@@ -12,6 +12,13 @@ use cursive::event::EventResult;
 use cursive::event::Event;
 use cursive::event::Key;
 use cursive::theme::ColorStyle;
+
+use futures01::future::Future;
+use futures01::stream::Stream;
+use futures01::future::poll_fn;
+
+use tokio_fs::read_dir;
+use tokio::runtime::Runtime;
 
 pub struct DirView {
     pub path: PathBuf,
@@ -22,19 +29,19 @@ pub struct DirView {
 
 impl DirView {
     pub fn from(path: PathBuf) -> Result<Self, Error> {
-        let mut entries: Vec<Entry> = read_dir(&path)?
-            .filter(Result::is_ok)
-            .map(Result::unwrap)
+        let mut rt = Runtime::new()?;
+        let entries = read_dir(path.clone())
+            .into_stream()
+            .flatten()
             .filter(|entry| {
-                entry.metadata().is_ok() &&
-                entry.file_type().is_ok() &&
-                entry.file_name().into_string().is_ok()
+                entry.file_name().into_string().is_ok() &&
+                poll_fn(move || entry.poll_metadata()).wait().is_ok()
             })
             .map(|entry| {
                 let path = entry.path();
-                let metadata = entry.metadata().unwrap();
-                let filetype = entry.file_type().unwrap();
                 let filename = entry.file_name().into_string().unwrap();
+                let metadata = poll_fn(move || entry.poll_metadata()).wait().unwrap();
+                let filetype = metadata.file_type();
 
                 Entry {
                     path,
@@ -44,12 +51,32 @@ impl DirView {
                 }
             })
             .collect();
+        let mut entries = rt.block_on(entries)?;
         entries.sort();
+
+        let selected = if !SETTINGS.show_hidden {
+            let mut selected = 0;
+            for (i, entry) in entries.iter().enumerate() {
+                let c = match entry.filename.chars().next() {
+                    Some(v) => v,
+                    None => continue,
+                };
+                if c == '.' {
+                    continue;
+                } else {
+                    selected = i;
+                    break;
+                }
+            }
+            selected
+        } else {
+            0
+        };
 
         Ok(DirView {
             path,
             entries,
-            selected: 0,
+            selected,
             last_offset: Rc::new(Cell::new(0)),
         })
     }
@@ -82,17 +109,26 @@ impl View for DirView {
 
         self.last_offset.set(start);
 
+        let mut j = 0;
         for i in 0..printer.size.y {
-            let element = start.saturating_add(i);
-            if element < self.entries.len() {
-                if element == self.selected {
+            let cur = start.saturating_add(i);
+            if cur < self.entries.len() {
+                let element = &self.entries[cur];
+                if !SETTINGS.show_hidden && 
+                    element.filename.chars().next().is_some() && 
+                    element.filename.chars().next().unwrap() == '.' {
+                    continue;
+                }
+
+                if cur == self.selected {
                     printer.with_color(
                         ColorStyle::highlight(),
-                        |printer| printer.print((0, i), &self.entries[element].filename));
+                        |printer| printer.print((0, j), &element.filename));
                 } else {
-                    printer.print((0, i), &self.entries[element].filename);
+                    printer.print((0, j), &element.filename);
                 }
             }
+            j = j + 1;
         }
     }
 

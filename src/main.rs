@@ -6,12 +6,14 @@ use config::Config;
 use cursive::{views::BoxView, Cursive};
 use failure::Error;
 use std::{env::current_dir, result::Result};
+use crate::settings::Settings;
 
 mod entry;
 mod dir_view;
+mod settings;
 
 lazy_static! {
-    static ref SETTINGS: Config = {
+    static ref SETTINGS: Settings = {
         let mut config = Config::new();
 
         // TODO: Print error, but don't quit app
@@ -20,7 +22,10 @@ lazy_static! {
             Err(_) => {}
         }
 
-        config
+        match config.try_into::<Settings>() {
+            Ok(v) => v,
+            Err(_) => Settings::default(),
+        }
     };
 }
 
@@ -31,7 +36,6 @@ fn main() -> Result<(), Error> {
     siv.load_theme_file("styles.toml").unwrap();
 
     let dirs_view = BoxView::with_full_screen(DirView::from(current_dir()?)?);
-    // let dirs_view = BoxView::with_full_screen(MainView::try_from(Path::new("/usr/bin").to_path_buf())?);
 
     siv.add_fullscreen_layer(dirs_view);
     siv.add_global_callback('q', |s| s.quit());
