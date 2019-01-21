@@ -3,10 +3,11 @@ extern crate lazy_static;
 
 use crate::dir_view::DirView;
 use config::Config;
-use cursive::{views::BoxView, Cursive};
 use failure::Error;
 use std::{env::current_dir, result::Result};
 use crate::settings::Settings;
+
+use ncurses::*;
 
 mod entry;
 mod dir_view;
@@ -30,16 +31,19 @@ lazy_static! {
 }
 
 fn main() -> Result<(), Error> {
-    let mut siv = Cursive::ncurses();
-    siv.set_fps(60);
+    initscr();
+    start_color();
 
-    siv.load_theme_file("styles.toml").unwrap();
+    curs_set(CURSOR_VISIBILITY::CURSOR_INVISIBLE);
+    noecho();
+    cbreak();
+    nonl();
+    // nodelay(stdscr(), true);
+    
+    let mut dirs_view = DirView::from(current_dir()?)?;
 
-    let dirs_view = BoxView::with_full_screen(DirView::from(current_dir()?)?);
-
-    siv.add_fullscreen_layer(dirs_view);
-    siv.add_global_callback('q', |s| s.quit());
-    siv.run();
+    dirs_view.draw(stdscr(), LINES(), COLS());
+    getch();
 
     Ok(())
 }

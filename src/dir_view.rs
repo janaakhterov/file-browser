@@ -2,16 +2,8 @@ use crate::SETTINGS;
 use failure::Error;
 use std::path::PathBuf;
 use crate::entry::Entry;
-use cursive::vec::Vec2;
-use cursive::view::View;
-use cursive::Printer;
 use std::rc::Rc;
 use std::cell::Cell;
-
-use cursive::event::EventResult;
-use cursive::event::Event;
-use cursive::event::Key;
-use cursive::theme::ColorStyle;
 
 use futures01::future::Future;
 use futures01::stream::Stream;
@@ -20,11 +12,21 @@ use futures01::future::poll_fn;
 use tokio_fs::read_dir;
 use tokio::runtime::Runtime;
 
+use ncurses::*;
+
 pub struct DirView {
+    // Path to this directory that we're viewing
     pub path: PathBuf,
+
+    // Each child file and directory
     pub entries: Vec<Entry>,
+
+    // The currently focused element
     pub selected: usize,
-    pub last_offset: Rc<Cell<usize>>,
+
+    // The last offset used for printing. This determines if we
+    // need to scroll up/down based on last position.
+    pub last_offset: usize,
 }
 
 impl DirView {
@@ -62,33 +64,15 @@ impl DirView {
             .filter(|entry| { entry.is_some() })
             .map(|entry| { entry.unwrap() })
             .collect();
+
         let mut entries = rt.block_on(entries)?;
         entries.sort();
-
-        let selected = if !SETTINGS.show_hidden {
-            let mut selected = 0;
-            for (i, entry) in entries.iter().enumerate() {
-                let c = match entry.filename.chars().next() {
-                    Some(v) => v,
-                    None => continue,
-                };
-                if c == '.' {
-                    continue;
-                } else {
-                    selected = i;
-                    break;
-                }
-            }
-            selected
-        } else {
-            0
-        };
 
         Ok(DirView {
             path,
             entries,
-            selected,
-            last_offset: Rc::new(Cell::new(0)),
+            selected: 0,
+            last_offset: 0,
         })
     }
 
@@ -106,71 +90,43 @@ impl DirView {
         };
         self.selected = focus;
     }
-}
 
-impl View for DirView {
-    fn draw(&self, printer: &Printer) {
-        let start = if self.last_offset.get() > self.selected {
+    pub fn draw(&mut self, win: WINDOW, lines: i32, cols: i32) {
+        let lines = lines as usize;
+
+        let start = if self.last_offset > self.selected {
             self.selected
-        } else if self.last_offset.get() + printer.size.y - 1 < self.selected {
-            self.selected - printer.size.y + 1
+        } else if self.last_offset.saturating_add(lines.saturating_sub(1)) < self.selected {
+            self.selected.saturating_sub(lines.saturating_add(1))
         } else {
-            self.last_offset.get()
+            self.last_offset
         };
 
-        self.last_offset.set(start);
+        self.last_offset = start;
 
-        let mut j = 0;
-        for i in 0..printer.size.y {
+        wclear(win);
+
+        for i in 0..lines {
             let cur = start.saturating_add(i);
-            if cur < self.entries.len() {
-                let element = &self.entries[cur];
-                if !SETTINGS.show_hidden && 
-                    element.filename.chars().next().is_some() && 
-                    element.filename.chars().next().unwrap() == '.' {
-                    continue;
-                }
 
-                if cur == self.selected {
-                    printer.with_color(
-                        ColorStyle::highlight(),
-                        |printer| {
-                            printer.print((0, j), &element.filename);
-                            printer.print_hline((element.filename.len(), j), printer.size.x - element.filename.len(), &" ");
-                        });
-                } else {
-                    printer.print((0, j), &element.filename);
-                }
+            if cur >= self.entries.len() {
+                break;
             }
-            j = j + 1;
-        }
-    }
 
-    fn on_event(&mut self, event: Event) -> EventResult {
-        match event {
-            Event::Key(Key::Up) => self.change_selected_by(-1),
-            Event::Key(Key::Down) => self.change_selected_by(1),
-            Event::Key(Key::PageUp) => self.change_selected_by(-10),
-            Event::Key(Key::PageDown) => self.change_selected_by(10),
-            Event::Key(Key::Home) => self.selected = 0,
-            Event::Key(Key::End) => self.selected = self.entries.len().saturating_sub(1),
-            Event::Char(c) => match c {
-                'j' => self.change_selected_by(1),
-                'k' => self.change_selected_by(-1),
-                _ => return EventResult::Ignored,
-            },
-            _ => return EventResult::Ignored,
+            let element = &self.entries[cur];
+            if !SETTINGS.show_hidden && 
+                element.filename.chars().next().is_some() && 
+                element.filename.chars().next().unwrap() == '.' {
+                continue;
+            }
+
+            if cur == self.selected {
+                mvwaddnstr(win, i as i32, 0, &element.filename, cols);
+            } else {
+                mvwaddnstr(win, i as i32, 0, &element.filename, cols);
+            }
         }
 
-        EventResult::Consumed(None)
-    }
-
-    fn required_size(&mut self, constrait: Vec2) -> Vec2 {
-        let w = self.entries
-            .iter()
-            .map(|entry| entry.filename.len())
-            .max()
-            .unwrap_or(1);
-        Vec2::new(w, self.entries.len())
+        wrefresh(win);
     }
 }
