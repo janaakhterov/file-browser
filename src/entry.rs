@@ -1,7 +1,8 @@
-use std::path::PathBuf;
-use std::fs::Metadata;
-use std::fs::FileType;
-use std::cmp::Ordering;
+use std::{
+    cmp::Ordering,
+    fs::{FileType, Metadata},
+    path::PathBuf,
+};
 
 pub struct Entry {
     pub path: PathBuf,

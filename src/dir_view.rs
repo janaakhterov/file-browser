@@ -1,16 +1,14 @@
-use crate::SETTINGS;
+use crate::{entry::Entry, SETTINGS};
 use failure::Error;
-use std::path::PathBuf;
-use crate::entry::Entry;
-use std::rc::Rc;
-use std::cell::Cell;
+use std::{cell::Cell, path::PathBuf, rc::Rc};
 
-use futures01::future::Future;
-use futures01::stream::Stream;
-use futures01::future::poll_fn;
+use futures01::{
+    future::{poll_fn, Future},
+    stream::Stream,
+};
 
-use tokio_fs::read_dir;
 use tokio::runtime::Runtime;
+use tokio_fs::read_dir;
 
 use ncurses::*;
 
@@ -36,8 +34,8 @@ impl DirView {
             .into_stream()
             .flatten()
             .filter(|entry| {
-                entry.file_name().into_string().is_ok() &&
-                poll_fn(move || entry.poll_metadata()).wait().is_ok()
+                entry.file_name().into_string().is_ok()
+                    && poll_fn(move || entry.poll_metadata()).wait().is_ok()
             })
             .map(|entry| {
                 let path = entry.path();
@@ -61,8 +59,8 @@ impl DirView {
                     filename,
                 })
             })
-            .filter(|entry| { entry.is_some() })
-            .map(|entry| { entry.unwrap() })
+            .filter(|entry| entry.is_some())
+            .map(|entry| entry.unwrap())
             .collect();
 
         let mut entries = rt.block_on(entries)?;
@@ -114,16 +112,27 @@ impl DirView {
             }
 
             let element = &self.entries[cur];
-            if !SETTINGS.show_hidden && 
-                element.filename.chars().next().is_some() && 
-                element.filename.chars().next().unwrap() == '.' {
+            if !SETTINGS.show_hidden
+                && element.filename.chars().next().is_some()
+                && element.filename.chars().next().unwrap() == '.'
+            {
                 continue;
             }
 
             if cur == self.selected {
+                attron(COLOR_PAIR(3));
                 mvwaddnstr(win, i as i32, 0, &element.filename, cols);
+                if element.filename.len() < cols as usize {
+                    hline(' ' as u64, cols - element.filename.len() as i32);
+                }
+                attroff(COLOR_PAIR(3));
             } else {
+                attron(COLOR_PAIR(2));
                 mvwaddnstr(win, i as i32, 0, &element.filename, cols);
+                if element.filename.len() < cols as usize {
+                    hline(' ' as u64, cols - element.filename.len() as i32);
+                }
+                attroff(COLOR_PAIR(2));
             }
         }
 
