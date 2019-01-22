@@ -9,8 +9,8 @@ use futures01::{
 
 use tokio::runtime::Runtime;
 use tokio_fs::read_dir;
-
 use ncurses::*;
+use crate::colors::*;
 
 pub struct DirView {
     // Path to this directory that we're viewing
@@ -43,6 +43,16 @@ impl DirView {
                 let metadata = poll_fn(move || entry.poll_metadata()).wait().unwrap();
                 let filetype = metadata.file_type();
 
+                let color_pair = if filetype.is_dir() {
+                    (DIR_COLOR, DIR_SELECTED_COLOR)
+                } else if filetype.is_file() {
+                    (FILE_COLOR, FILE_SELECTED_COLOR)
+                } else if filetype.is_symlink() {
+                    (LINK_COLOR, LINK_SELECTED_COLOR)
+                } else {
+                    (FILE_COLOR, FILE_SELECTED_COLOR)
+                };
+
                 let first_char = match filename.chars().next() {
                     Some(v) => v,
                     None => return None,
@@ -57,6 +67,8 @@ impl DirView {
                     metadata,
                     filetype,
                     filename,
+                    color_regular: color_pair.0,
+                    color_selected: color_pair.1,
                 })
             })
             .filter(|entry| entry.is_some())
@@ -119,21 +131,20 @@ impl DirView {
                 continue;
             }
 
-            if cur == self.selected {
-                attron(COLOR_PAIR(3));
-                mvwaddnstr(win, i as i32, 0, &element.filename, cols);
-                if element.filename.len() < cols as usize {
-                    hline(' ' as u64, cols - element.filename.len() as i32);
-                }
-                attroff(COLOR_PAIR(3));
+            let color = if cur == self.selected {
+                element.color_selected
             } else {
-                attron(COLOR_PAIR(2));
-                mvwaddnstr(win, i as i32, 0, &element.filename, cols);
-                if element.filename.len() < cols as usize {
-                    hline(' ' as u64, cols - element.filename.len() as i32);
-                }
-                attroff(COLOR_PAIR(2));
+                element.color_regular
+            };
+
+            attron(COLOR_PAIR(color));
+            mvwaddnstr(win, i as i32, 0, &element.filename, cols);
+
+            if element.filename.len() < cols as usize {
+                hline(' ' as u64, cols - element.filename.len() as i32);
             }
+
+            attroff(COLOR_PAIR(color));
         }
 
         wrefresh(win);

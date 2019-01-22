@@ -5,7 +5,8 @@ use std::collections::HashMap;
 #[serde(default)]
 pub struct Settings {
     pub show_hidden: bool,
-    pub ext: HashMap<String, ColorValue>,
+    // Unsupported currently, but planning to support later
+    // pub ext: HashMap<String, ColorValue>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -20,7 +21,7 @@ impl Default for Settings {
     fn default() -> Self {
         Settings {
             show_hidden: false,
-            ext: HashMap::new(),
+            // ext: HashMap::new(),
         }
     }
 }

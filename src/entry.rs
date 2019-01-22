@@ -9,6 +9,8 @@ pub struct Entry {
     pub metadata: Metadata,
     pub filetype: FileType,
     pub filename: String,
+    pub color_regular: i16,
+    pub color_selected: i16,
 }
 
 impl Ord for Entry {

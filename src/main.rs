@@ -6,10 +6,13 @@ use config::Config;
 use failure::Error;
 use ncurses::*;
 use std::{env::current_dir, result::Result};
+use crate::settings::ColorValue;
+use crate::colors::init_colors;
 
 mod dir_view;
 mod entry;
 mod settings;
+mod colors;
 
 lazy_static! {
     static ref SETTINGS: Settings = {
@@ -28,38 +31,43 @@ lazy_static! {
     };
 }
 
+// Initialize the hardcoded colors
+// For now this is going to be 4 different filetypes
+// Directory, file, sym-link, and exec.
+// Planning to add full customizability to colors later on.
 fn main() -> Result<(), Error> {
     initscr();
     start_color();
 
+    init_colors();
+
+    let mut dirs_view = DirView::from(current_dir()?)?;
+    dirs_view.draw(stdscr(), LINES(), COLS());
+
+    loop {
+        let c = getch();
+        if c == b'q' as i32 {
+            break;
+        }
+    }
+
+    endwin();
+
+    Ok(())
+}
+
+fn ui_settings() {
     curs_set(CURSOR_VISIBILITY::CURSOR_INVISIBLE);
     noecho();
     cbreak();
     nonl();
     // nodelay(stdscr(), true);
+}
 
-    let s = "#0fffff".to_string();
-    if s.chars().next().unwrap() == '#' {
-        let s = s.chars().next().map(|c| &s[c.len_utf8()..]).unwrap();
-        let s1 = i16::from_str_radix(&s[0..2], 16)?;
-        let s2 = i16::from_str_radix(&s[2..4], 16)?;
-        let s3 = i16::from_str_radix(&s[4..6], 16)?;
-
-        mvaddstr(11, 0, &s1.to_string());
-        mvaddstr(12, 0, &s2.to_string());
-        mvaddstr(13, 0, &s3.to_string());
-        refresh();
-    }
-
-    init_pair(1, COLOR_BLUE, COLOR_BLACK);
-    init_pair(2, COLOR_WHITE, COLOR_BLACK);
-    init_pair(3, COLOR_WHITE, COLOR_BLUE);
-    init_pair(4, COLOR_BLACK, COLOR_WHITE);
-
-    let mut dirs_view = DirView::from(current_dir()?)?;
-
-    dirs_view.draw(stdscr(), LINES(), COLS());
-    getch();
-
-    Ok(())
+fn textbox_settings() {
+    curs_set(CURSOR_VISIBILITY::CURSOR_VISIBLE);
+    echo();
+    nocbreak();
+    nl();
+    nodelay(stdscr(), false);
 }

@@ -1,3 +1,6 @@
 {
-    "show_hidden": false
+    "show_hidden": false,
+    "ext" : {
+        "conf": "#ffffff"
+    }
 }
