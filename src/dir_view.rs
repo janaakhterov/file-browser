@@ -34,13 +34,19 @@ impl DirView {
             .into_stream()
             .flatten()
             .filter(|entry| {
-                entry.file_name().into_string().is_ok()
-                    && poll_fn(move || entry.poll_metadata()).wait().is_ok()
+                if !entry.file_name().into_string().is_ok() {
+                    return false;
+                }
+                let metadata = poll_fn(move || entry.poll_metadata()).wait();
+
+                metadata.is_ok() && metadata.unwrap().modified().is_ok()
             })
             .map(|entry| {
                 let path = entry.path();
                 let filename = entry.file_name().into_string().unwrap();
                 let metadata = poll_fn(move || entry.poll_metadata()).wait().unwrap();
+                let permissions = metadata.permissions();
+                let modified = metadata.modified().unwrap();
                 let filetype = metadata.file_type();
 
                 let color_pair = if filetype.is_dir() {
@@ -65,6 +71,8 @@ impl DirView {
                 Some(Entry {
                     path,
                     metadata,
+                    modified,
+                    permissions,
                     filetype,
                     filename,
                     color_regular: color_pair.0,

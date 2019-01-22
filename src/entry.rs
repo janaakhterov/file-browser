@@ -1,12 +1,15 @@
 use std::{
     cmp::Ordering,
-    fs::{FileType, Metadata},
+    fs::{FileType, Metadata, Permissions},
     path::PathBuf,
+    time::SystemTime,
 };
 
 pub struct Entry {
     pub path: PathBuf,
     pub metadata: Metadata,
+    pub permissions: Permissions,
+    pub modified: SystemTime,
     pub filetype: FileType,
     pub filename: String,
     pub color_regular: i16,
