@@ -57,9 +57,11 @@ fn main() -> Result<(), Error> {
             dirs_view.draw(stdscr(), LINES(), COLS());
         } else if c == b'h' as i32 {
             if let Some(parent) = dirs_view.path.parent() {
+                let path = dirs_view.path.clone();
                 wclear(stdscr());
 
                 dirs_view = DirView::from(parent.to_path_buf())?;
+                dirs_view.change_selected_by_path(path);
                 dirs_view.draw(stdscr(), LINES(), COLS());
             }
         } else if c == b'l' as i32 {

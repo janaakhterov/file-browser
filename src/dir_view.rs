@@ -102,6 +102,15 @@ impl DirView {
         self.entries[self.selected].clone()
     }
 
+    pub fn change_selected_by_path(&mut self, path: PathBuf) {
+        for (i, entry) in self.entries.iter().enumerate() {
+            if entry.path == path {
+                self.selected = i;
+                break;
+            }
+        }
+    }
+
     pub fn change_selected_by(&mut self, difference: i64) {
         let focus = if difference > 0 {
             if self.selected.saturating_add(difference as usize) >= self.entries.len() {
