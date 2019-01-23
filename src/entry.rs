@@ -5,6 +5,7 @@ use std::{
     time::SystemTime,
 };
 
+#[derive(Clone)]
 pub struct Entry {
     pub path: PathBuf,
     pub metadata: Metadata,

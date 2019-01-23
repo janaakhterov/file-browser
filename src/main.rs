@@ -55,6 +55,18 @@ fn main() -> Result<(), Error> {
         } else if c == b'k' as i32 {
             dirs_view.change_selected_by(-1);
             dirs_view.draw(stdscr(), LINES(), COLS());
+        } else if c == b'h' as i32 {
+            if let Some(parent) = dirs_view.path.parent() {
+                wclear(stdscr());
+
+                dirs_view = DirView::from(parent.to_path_buf())?;
+                dirs_view.draw(stdscr(), LINES(), COLS());
+            }
+        } else if c == b'l' as i32 {
+            wclear(stdscr());
+
+            dirs_view = DirView::from(dirs_view.selected().path)?;
+            dirs_view.draw(stdscr(), LINES(), COLS());
         }
     }
 

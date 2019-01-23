@@ -53,12 +53,12 @@ impl DirView {
 
                 let color_pair = if filetype.is_dir() {
                     (DIR_COLOR, DIR_SELECTED_COLOR)
+                } else if permissions.mode().bitand(1) == 1 {
+                    (EXEC_COLOR, EXEC_SELECTED_COLOR)
                 } else if filetype.is_file() {
                     (FILE_COLOR, FILE_SELECTED_COLOR)
                 } else if filetype.is_symlink() {
                     (LINK_COLOR, LINK_SELECTED_COLOR)
-                } else if permissions.mode().bitand(1) == 1 {
-                    (EXEC_COLOR, EXEC_SELECTED_COLOR)
                 } else {
                     (FILE_COLOR, FILE_SELECTED_COLOR)
                 };
@@ -96,6 +96,10 @@ impl DirView {
             selected: 0,
             last_offset: 0,
         })
+    }
+
+    pub fn selected(&self) -> Entry {
+        self.entries[self.selected].clone()
     }
 
     pub fn change_selected_by(&mut self, difference: i64) {
