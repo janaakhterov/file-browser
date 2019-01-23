@@ -40,6 +40,7 @@ fn main() -> Result<(), Error> {
     start_color();
 
     init_colors();
+    ui_settings();
 
     let mut dirs_view = DirView::from(current_dir()?)?;
     dirs_view.draw(stdscr(), LINES(), COLS());
@@ -48,6 +49,12 @@ fn main() -> Result<(), Error> {
         let c = getch();
         if c == b'q' as i32 {
             break;
+        } else if c == b'j' as i32 {
+            dirs_view.change_selected_by(1);
+            dirs_view.draw(stdscr(), LINES(), COLS());
+        } else if c == b'k' as i32 {
+            dirs_view.change_selected_by(-1);
+            dirs_view.draw(stdscr(), LINES(), COLS());
         }
     }
 

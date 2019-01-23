@@ -11,6 +11,8 @@ use tokio::runtime::Runtime;
 use tokio_fs::read_dir;
 use ncurses::*;
 use crate::colors::*;
+use std::os::unix::fs::PermissionsExt;
+use std::ops::BitAnd;
 
 pub struct DirView {
     // Path to this directory that we're viewing
@@ -55,6 +57,8 @@ impl DirView {
                     (FILE_COLOR, FILE_SELECTED_COLOR)
                 } else if filetype.is_symlink() {
                     (LINK_COLOR, LINK_SELECTED_COLOR)
+                } else if permissions.mode().bitand(1) == 1 {
+                    (EXEC_COLOR, EXEC_SELECTED_COLOR)
                 } else {
                     (FILE_COLOR, FILE_SELECTED_COLOR)
                 };
@@ -122,8 +126,6 @@ impl DirView {
 
         self.last_offset = start;
 
-        wclear(win);
-
         for i in 0..lines {
             let cur = start.saturating_add(i);
 
@@ -146,6 +148,8 @@ impl DirView {
             };
 
             attron(COLOR_PAIR(color));
+            wmove(win, i as i32, 0);
+            clrtoeol();
             mvwaddnstr(win, i as i32, 0, &element.filename, cols);
 
             if element.filename.len() < cols as usize {
