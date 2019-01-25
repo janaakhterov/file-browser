@@ -8,6 +8,9 @@ use ncurses::*;
 use std::{env::current_dir, result::Result};
 use crate::settings::ColorValue;
 use crate::colors::init_colors;
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::Arc;
 
 mod dir_view;
 mod entry;
@@ -31,6 +34,7 @@ lazy_static! {
     };
 }
 
+
 // Initialize the hardcoded colors
 // For now this is going to be 4 different filetypes
 // Directory, file, sym-link, and exec.
@@ -42,33 +46,53 @@ fn main() -> Result<(), Error> {
     init_colors();
     ui_settings();
 
-    let mut dirs_view = DirView::from(current_dir()?)?;
-    dirs_view.draw(stdscr(), LINES(), COLS());
+    let mut history: HashMap<PathBuf, DirView> = HashMap::new();
+
+    let mut path = current_dir()?;
+    history.insert(path.clone(), DirView::from(path.clone())?);
+    history.get_mut(&path).unwrap().draw(stdscr(), LINES(), COLS());
 
     loop {
         let c = getch();
         if c == b'q' as i32 {
             break;
         } else if c == b'j' as i32 {
-            dirs_view.change_selected_by(1);
-            dirs_view.draw(stdscr(), LINES(), COLS());
+            history.get_mut(&path).unwrap().change_selected_by(1);
+            history.get_mut(&path).unwrap().draw(stdscr(), LINES(), COLS());
         } else if c == b'k' as i32 {
-            dirs_view.change_selected_by(-1);
-            dirs_view.draw(stdscr(), LINES(), COLS());
+            history.get_mut(&path).unwrap().change_selected_by(-1);
+            history.get_mut(&path).unwrap().draw(stdscr(), LINES(), COLS());
         } else if c == b'h' as i32 {
-            if let Some(parent) = dirs_view.path.parent() {
-                let path = dirs_view.path.clone();
+            if history.get(&path).unwrap().path.parent().is_some() {
+                let parent = history.get(&path).unwrap().path.clone();
+                let parent = parent.parent().unwrap();
+                path = history.get_mut(&path).unwrap().path.clone();
                 wclear(stdscr());
 
-                dirs_view = DirView::from(parent.to_path_buf())?;
-                dirs_view.change_selected_by_path(path);
-                dirs_view.draw(stdscr(), LINES(), COLS());
+                // if !history.contains_key(&path) {
+                //     history.insert(path.clone(), dirs_view.clone());
+                // }
+
+                &mut history.insert(parent.to_path_buf(), DirView::from(parent.to_path_buf())?);
+                path = parent.to_path_buf();
+                &mut history.get_mut(&path).unwrap().change_selected_by_path(path.clone());
+                history.get_mut(&path).unwrap().draw(stdscr(), LINES(), COLS());
             }
-        } else if c == b'l' as i32 {
+        } 
+        else if c == b'l' as i32 {
             wclear(stdscr());
 
-            dirs_view = DirView::from(dirs_view.selected().path)?;
-            dirs_view.draw(stdscr(), LINES(), COLS());
+            // if !history.contains_key(&dirs_view.path) {
+            //     history.insert(dirs_view.path.clone(), dirs_view.clone());
+            // }
+
+            // if history.contains_key(&dirs_view.selected().path) {
+            //     dirs_view = history.get(dirs_view.selected().path);
+            // } else {
+            //     dirs_view = DirView::from(dirs_view.selected().path)?;
+            //     dirs_view.draw(stdscr(), LINES(), COLS());
+            //     history.insert(dirs_view.path.clone(), dirs_view.clone());
+            // }
         }
     }
 

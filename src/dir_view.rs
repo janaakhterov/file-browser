@@ -14,6 +14,7 @@ use crate::colors::*;
 use std::os::unix::fs::PermissionsExt;
 use std::ops::BitAnd;
 
+#[derive(Clone)]
 pub struct DirView {
     // Path to this directory that we're viewing
     pub path: PathBuf,
