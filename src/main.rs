@@ -11,6 +11,7 @@ use crate::colors::init_colors;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
+use parking_lot::Mutex;
 
 mod dir_view;
 mod entry;
@@ -46,37 +47,38 @@ fn main() -> Result<(), Error> {
     init_colors();
     ui_settings();
 
-    let mut history: HashMap<PathBuf, DirView> = HashMap::new();
+    let mut history: HashMap<PathBuf, Arc<Mutex<DirView>>> = HashMap::new();
 
-    let mut path = current_dir()?;
-    history.insert(path.clone(), DirView::from(path.clone())?);
-    history.get_mut(&path).unwrap().draw(stdscr(), LINES(), COLS());
+    let mut view: Arc<Mutex<DirView>> = Arc::new(Mutex::new(DirView::from(current_dir()?)?));
+    history.insert(view.lock().path.clone(), view.clone());
+    view.lock().draw(stdscr(), LINES(), COLS());
 
     loop {
         let c = getch();
         if c == b'q' as i32 {
             break;
         } else if c == b'j' as i32 {
-            history.get_mut(&path).unwrap().change_selected_by(1);
-            history.get_mut(&path).unwrap().draw(stdscr(), LINES(), COLS());
+            view.lock().change_selected_by(1);
+            view.lock().draw(stdscr(), LINES(), COLS());
         } else if c == b'k' as i32 {
-            history.get_mut(&path).unwrap().change_selected_by(-1);
-            history.get_mut(&path).unwrap().draw(stdscr(), LINES(), COLS());
+            view.lock().change_selected_by(-1);
+            view.lock().draw(stdscr(), LINES(), COLS());
         } else if c == b'h' as i32 {
-            if history.get(&path).unwrap().path.parent().is_some() {
-                let parent = history.get(&path).unwrap().path.clone();
-                let parent = parent.parent().unwrap();
-                path = history.get_mut(&path).unwrap().path.clone();
-                wclear(stdscr());
+            wclear(stdscr());
 
-                // if !history.contains_key(&path) {
-                //     history.insert(path.clone(), dirs_view.clone());
-                // }
+            let parent = view.lock().path.clone();
+            let parent = parent.parent();
+            if parent.is_some() {
+                let parent = parent.unwrap().to_path_buf();
+                view = if history.get(&parent).is_some() {
+                    history.get(&parent).unwrap().clone()
+                } else {
+                    let view = Arc::new(Mutex::new(DirView::from(parent.to_path_buf())?));
+                    history.insert(parent, view.clone());
+                    view
+                };
 
-                &mut history.insert(parent.to_path_buf(), DirView::from(parent.to_path_buf())?);
-                path = parent.to_path_buf();
-                &mut history.get_mut(&path).unwrap().change_selected_by_path(path.clone());
-                history.get_mut(&path).unwrap().draw(stdscr(), LINES(), COLS());
+                view.lock().draw(stdscr(), LINES(), COLS());
             }
         } 
         else if c == b'l' as i32 {
