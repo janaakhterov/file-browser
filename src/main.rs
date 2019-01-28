@@ -64,16 +64,16 @@ fn main() -> Result<(), Error> {
             view.lock().change_selected_by(-1);
             view.lock().draw(stdscr(), LINES(), COLS());
         } else if c == b'h' as i32 {
-            wclear(stdscr());
-
             let parent = view.lock().path.clone();
             let parent = parent.parent();
             if parent.is_some() {
+                wclear(stdscr());
+
                 let parent = parent.unwrap().to_path_buf();
                 view = if history.get(&parent).is_some() {
                     history.get(&parent).unwrap().clone()
                 } else {
-                    let view = Arc::new(Mutex::new(DirView::from(parent.to_path_buf())?));
+                    let view = Arc::new(Mutex::new(DirView::from(parent.clone())?));
                     history.insert(parent, view.clone());
                     view
                 };
@@ -82,19 +82,24 @@ fn main() -> Result<(), Error> {
             }
         } 
         else if c == b'l' as i32 {
+            // Make we aren't trying to enter a file
+            let child = view.lock().selected();
+            if !child.filetype.is_dir() {
+                continue;
+            }
+            let child = child.path.to_path_buf();
+
             wclear(stdscr());
 
-            // if !history.contains_key(&dirs_view.path) {
-            //     history.insert(dirs_view.path.clone(), dirs_view.clone());
-            // }
+            view = if history.get(&child).is_some() {
+                history.get(&child).unwrap().clone()
+            } else {
+                    let view = Arc::new(Mutex::new(DirView::from(child.clone())?));
+                    history.insert(child, view.clone());
+                    view
+            };
 
-            // if history.contains_key(&dirs_view.selected().path) {
-            //     dirs_view = history.get(dirs_view.selected().path);
-            // } else {
-            //     dirs_view = DirView::from(dirs_view.selected().path)?;
-            //     dirs_view.draw(stdscr(), LINES(), COLS());
-            //     history.insert(dirs_view.path.clone(), dirs_view.clone());
-            // }
+            view.lock().draw(stdscr(), LINES(), COLS());
         }
     }
 
