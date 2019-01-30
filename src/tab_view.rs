@@ -25,13 +25,22 @@ impl TabView {
         }
 
         let current = SplitView::try_from(path.clone())?;
-        let preview = None;
+        let preview = Some(SplitView::try_from(current.lock().selected().path)?);
 
         Ok(TabView {
             parent,
             current,
             preview,
         })
+    }
+
+    pub fn update_preview(&mut self) {
+        let selected = self.current.lock().selected();
+        if selected.filetype.is_dir() {
+            self.preview = Some(SplitView::try_from(selected.path).unwrap());
+        } else {
+            self.preview = None;
+        }
     }
 
     pub fn enter_dir(&mut self) {
@@ -44,6 +53,7 @@ impl TabView {
 
         self.parent = Some(self.current.clone());
         self.current = SplitView::try_from(path).unwrap();
+        self.update_preview();
     }
 
     pub fn leave_dir(&mut self) {
@@ -55,6 +65,7 @@ impl TabView {
             } else {
                 self.parent = None;
             }
+            self.update_preview();
         }
     }
 }
@@ -112,7 +123,13 @@ impl View for TabView {
             Event::Char(c) => match c {
                 'h' => self.leave_dir(),
                 'l' => self.enter_dir(),
-                _ => return self.current.lock().on_event(event),
+                _ => {
+                    let event = self.current.lock().on_event(event);
+                    match event {
+                        EventResult::Consumed(_) => self.update_preview(),
+                        EventResult::Ignored => return EventResult::Ignored,
+                    }
+                }
             },
             _ => return self.current.lock().on_event(event),
         }
