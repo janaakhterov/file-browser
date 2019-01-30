@@ -10,6 +10,7 @@ use parking_lot::Mutex;
 use std::{collections::HashMap, env::current_dir, path::PathBuf, result::Result, sync::Arc};
 use tab_view::TabView;
 
+pub mod color_pair;
 pub mod entry;
 pub mod settings;
 pub mod split_view;

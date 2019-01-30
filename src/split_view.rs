@@ -1,7 +1,7 @@
-use crate::{entry::Entry, SETTINGS, VIEW_CACHE};
+use crate::{color_pair::ColorPair, entry::Entry, SETTINGS, VIEW_CACHE};
 use cursive::{
     event::{Event, EventResult, Key},
-    theme::ColorStyle,
+    theme::{BaseColor, Color, ColorStyle, ColorType},
     vec::Vec2,
     view::View,
     Printer,
@@ -43,6 +43,7 @@ impl SplitView {
                 let filename = entry.file_name().into_string().unwrap();
                 let metadata = poll_fn(move || entry.poll_metadata()).wait().unwrap();
                 let filetype = metadata.file_type();
+                let color = ColorPair::new(&filetype);
 
                 let first_char = match filename.chars().next() {
                     Some(v) => v,
@@ -58,6 +59,7 @@ impl SplitView {
                     metadata,
                     filetype,
                     filename,
+                    color,
                 })
             })
             .filter(|entry| entry.is_some())
@@ -129,6 +131,19 @@ impl SplitView {
 
 impl View for SplitView {
     fn draw(&self, printer: &Printer) {
+        if self.entries.len() == 0 {
+            printer.with_color(
+                ColorStyle::new(
+                    ColorType::Color(Color::Dark(BaseColor::Black)),
+                    ColorType::Color(Color::Dark(BaseColor::Red)),
+                ),
+                |printer| {
+                    printer.print((0, 0), "empty");
+                },
+            );
+            return;
+        }
+
         let start = if self.last_offset.lock().get() > self.selected {
             self.selected
         } else if self.last_offset.lock().get() + printer.size.y - 1 < self.selected {
@@ -151,18 +166,20 @@ impl View for SplitView {
                     continue;
                 }
 
-                if cur == self.selected {
-                    printer.with_color(ColorStyle::highlight(), |printer| {
-                        printer.print((0, j), &element.filename);
-                        printer.print_hline(
-                            (element.filename.len(), j),
-                            printer.size.x - element.filename.len(),
-                            &" ",
-                        );
-                    });
+                let color = if cur == self.selected {
+                    element.color.highlight
                 } else {
+                    element.color.default
+                };
+
+                printer.with_color(color, |printer| {
                     printer.print((0, j), &element.filename);
-                }
+                    printer.print_hline(
+                        (element.filename.len(), j),
+                        printer.size.x - element.filename.len(),
+                        &" ",
+                    );
+                });
             }
             j = j + 1;
         }

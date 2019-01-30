@@ -1,3 +1,4 @@
+use crate::color_pair::ColorPair;
 use std::{
     cmp::Ordering,
     fs::{FileType, Metadata},
@@ -10,6 +11,7 @@ pub struct Entry {
     pub metadata: Metadata,
     pub filetype: FileType,
     pub filename: String,
+    pub color: ColorPair,
 }
 
 impl Ord for Entry {
