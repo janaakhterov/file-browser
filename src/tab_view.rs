@@ -1,5 +1,11 @@
 use crate::{split_view::SplitView, VIEW_CACHE};
-use cursive::{vec::Vec2, view::View, views::BoxView, Printer};
+use cursive::{
+    event::{Event, EventResult, Key},
+    vec::Vec2,
+    view::View,
+    views::BoxView,
+    Printer,
+};
 use failure::Error;
 use parking_lot::Mutex;
 use std::{path::PathBuf, sync::Arc};
@@ -14,7 +20,9 @@ impl TabView {
     pub fn try_from(path: PathBuf) -> Result<Self, Error> {
         let mut parent = None;
         if let Some(parent_path) = path.parent() {
-            parent = Some(SplitView::try_from(parent_path.to_path_buf())?);
+            let tmp_parent = SplitView::try_from(parent_path.to_path_buf())?;
+            tmp_parent.lock().change_selected_to(path.clone());
+            parent = Some(tmp_parent);
         }
 
         let current = SplitView::try_from(path.clone())?;
@@ -26,40 +34,77 @@ impl TabView {
             preview,
         })
     }
+
+    pub fn leave_dir(&mut self) {
+        if let Some(parent) = &self.parent {
+            self.current = parent.clone();
+            if let Some(path) = self.current.lock().path.parent() {
+                let view = SplitView::try_from(path.to_path_buf()).unwrap();
+                self.parent = Some(view);
+            } else {
+                self.parent = None;
+            }
+        }
+    }
 }
 
 impl View for TabView {
     fn draw(&self, printer: &Printer) {
-        // if let Some(parent) = self.parent {
-        //     parent.draw();
-        // }
+        let parent_printer = printer.cropped((printer.size.x / 4, printer.size.y));
+        let current_printer = printer
+            .offset((printer.size.x / 4, 0))
+            .cropped((printer.size.x / 2, printer.size.y));
+        let preview_printer = printer
+            .offset((3 * printer.size.x / 4, 0))
+            .cropped((printer.size.x / 4, printer.size.y));
 
-        // self.current.draw();
+        if let Some(parent) = &self.parent {
+            parent.lock().draw(&parent_printer);
+        }
 
-        // if let Some(preview) = self.preview {
-        //     preview.draw();
-        // }
+        self.current.lock().draw(&current_printer);
+
+        if let Some(preview) = &self.preview {
+            preview.lock().draw(&preview_printer);
+        }
     }
 
     fn required_size(&mut self, _constraint: Vec2) -> Vec2 {
-        // let parent = if self.parent.is_some() {
-        //     let parent = self.parent.unwrap();
-        // // *parent.clone().lock().requied_size();
-        // } else {
-        //     (0, 0)
-        // };
+        let parent = if self.parent.is_some() {
+            self.parent
+                .clone()
+                .unwrap()
+                .lock()
+                .required_size(Vec2::zero())
+        } else {
+            Vec2::zero()
+        };
 
-        // let current = self.current.required_size();
+        let current = self.current.lock().required_size(Vec2::zero());
 
-        // let preview = if self.preview.is_some() {
-        //     let preview = self.preview.unwrap().lock();
-        // // *preview.clone().lock().requied_size();
-        // } else {
-        //     (0, 0)
-        // };
+        let preview = if self.preview.is_some() {
+            self.preview
+                .clone()
+                .unwrap()
+                .lock()
+                .required_size(Vec2::zero())
+        } else {
+            Vec2::zero()
+        };
 
-        Vec2::zero()
+        parent + current + preview
+    }
 
-        // parent + current + preview
+    fn on_event(&mut self, event: Event) -> EventResult {
+        match event {
+            Event::Key(Key::Left) => self.leave_dir(),
+            Event::Char(c) => match c {
+                'h' => self.leave_dir(),
+                _ => return self.current.lock().on_event(event),
+            },
+            _ => return self.current.lock().on_event(event),
+        }
+
+        EventResult::Consumed(None)
     }
 }

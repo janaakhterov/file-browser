@@ -25,6 +25,12 @@ pub struct SplitView {
 
 impl SplitView {
     pub fn try_from(path: PathBuf) -> Result<Arc<Mutex<Self>>, Error> {
+        {
+            if let Some(cached) = VIEW_CACHE.lock().get(&path) {
+                return Ok(cached.clone());
+            }
+        }
+
         let entries = read_dir(path.clone())
             .into_stream()
             .flatten()
@@ -105,6 +111,15 @@ impl SplitView {
             self.selected
         };
         self.selected = focus;
+    }
+
+    pub fn change_selected_to(&mut self, path: PathBuf) {
+        for (i, entry) in self.entries.iter().enumerate() {
+            if entry.path == path {
+                self.selected = i;
+                break;
+            }
+        }
     }
 }
 
