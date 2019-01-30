@@ -1,41 +1,36 @@
-use crate::SETTINGS;
+use crate::{entry::Entry, SETTINGS, VIEW_CACHE};
+use cursive::{
+    event::{Event, EventResult, Key},
+    theme::ColorStyle,
+    vec::Vec2,
+    view::{SizeConstraint, View},
+    Printer,
+};
 use failure::Error;
-use std::path::PathBuf;
-use crate::entry::Entry;
-use cursive::vec::Vec2;
-use cursive::view::View;
-use cursive::Printer;
-use std::rc::Rc;
-use std::cell::Cell;
-
-use cursive::event::EventResult;
-use cursive::event::Event;
-use cursive::event::Key;
-use cursive::theme::ColorStyle;
-
-use futures01::future::Future;
-use futures01::stream::Stream;
-use futures01::future::poll_fn;
-
-use tokio_fs::read_dir;
+use futures01::{
+    future::{poll_fn, Future},
+    stream::Stream,
+};
+use parking_lot::Mutex;
+use std::{cell::Cell, path::PathBuf, rc::Rc, sync::Arc};
 use tokio::runtime::Runtime;
+use tokio_fs::read_dir;
 
-pub struct DirView {
+pub struct SplitView {
     pub path: PathBuf,
     pub entries: Vec<Entry>,
     pub selected: usize,
-    pub last_offset: Rc<Cell<usize>>,
+    pub last_offset: Mutex<Cell<usize>>,
 }
 
-impl DirView {
-    pub fn from(path: PathBuf) -> Result<Self, Error> {
-        let mut rt = Runtime::new()?;
+impl SplitView {
+    pub fn try_from(path: PathBuf) -> Result<Arc<Mutex<Self>>, Error> {
         let entries = read_dir(path.clone())
             .into_stream()
             .flatten()
             .filter(|entry| {
-                entry.file_name().into_string().is_ok() &&
-                poll_fn(move || entry.poll_metadata()).wait().is_ok()
+                entry.file_name().into_string().is_ok()
+                    && poll_fn(move || entry.poll_metadata()).wait().is_ok()
             })
             .map(|entry| {
                 let path = entry.path();
@@ -59,10 +54,11 @@ impl DirView {
                     filename,
                 })
             })
-            .filter(|entry| { entry.is_some() })
-            .map(|entry| { entry.unwrap() })
+            .filter(|entry| entry.is_some())
+            .map(|entry| entry.unwrap())
             .collect();
-        let mut entries = rt.block_on(entries)?;
+
+        let mut entries = Runtime::new()?.block_on(entries)?;
         entries.sort();
 
         let selected = if !SETTINGS.show_hidden {
@@ -84,12 +80,16 @@ impl DirView {
             0
         };
 
-        Ok(DirView {
-            path,
+        let split_view = Arc::new(Mutex::new(SplitView {
+            path: path.clone(),
             entries,
             selected,
-            last_offset: Rc::new(Cell::new(0)),
-        })
+            last_offset: Mutex::new(Cell::new(0)),
+        }));
+
+        VIEW_CACHE.lock().insert(path, split_view.clone());
+
+        Ok(split_view.clone())
     }
 
     pub fn change_selected_by(&mut self, difference: i64) {
@@ -108,36 +108,39 @@ impl DirView {
     }
 }
 
-impl View for DirView {
+impl View for SplitView {
     fn draw(&self, printer: &Printer) {
-        let start = if self.last_offset.get() > self.selected {
+        let start = if self.last_offset.lock().get() > self.selected {
             self.selected
-        } else if self.last_offset.get() + printer.size.y - 1 < self.selected {
+        } else if self.last_offset.lock().get() + printer.size.y - 1 < self.selected {
             self.selected - printer.size.y + 1
         } else {
-            self.last_offset.get()
+            self.last_offset.lock().get()
         };
 
-        self.last_offset.set(start);
+        self.last_offset.lock().set(start);
 
         let mut j = 0;
         for i in 0..printer.size.y {
             let cur = start.saturating_add(i);
             if cur < self.entries.len() {
                 let element = &self.entries[cur];
-                if !SETTINGS.show_hidden && 
-                    element.filename.chars().next().is_some() && 
-                    element.filename.chars().next().unwrap() == '.' {
+                if !SETTINGS.show_hidden
+                    && element.filename.chars().next().is_some()
+                    && element.filename.chars().next().unwrap() == '.'
+                {
                     continue;
                 }
 
                 if cur == self.selected {
-                    printer.with_color(
-                        ColorStyle::highlight(),
-                        |printer| {
-                            printer.print((0, j), &element.filename);
-                            printer.print_hline((element.filename.len(), j), printer.size.x - element.filename.len(), &" ");
-                        });
+                    printer.with_color(ColorStyle::highlight(), |printer| {
+                        printer.print((0, j), &element.filename);
+                        printer.print_hline(
+                            (element.filename.len(), j),
+                            printer.size.x - element.filename.len(),
+                            &" ",
+                        );
+                    });
                 } else {
                     printer.print((0, j), &element.filename);
                 }
@@ -165,8 +168,9 @@ impl View for DirView {
         EventResult::Consumed(None)
     }
 
-    fn required_size(&mut self, constrait: Vec2) -> Vec2 {
-        let w = self.entries
+    fn required_size(&mut self, _constrait: Vec2) -> Vec2 {
+        let w = self
+            .entries
             .iter()
             .map(|entry| entry.filename.len())
             .max()

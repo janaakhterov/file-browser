@@ -1,43 +1,47 @@
 #[macro_use]
-extern crate lazy_static;
+extern crate once_cell;
 
-use crate::dir_view::DirView;
+use crate::{settings::Settings, split_view::SplitView};
 use config::Config;
 use cursive::{views::BoxView, Cursive};
 use failure::Error;
-use std::{env::current_dir, result::Result};
-use crate::settings::Settings;
+use once_cell::sync::Lazy;
+use parking_lot::Mutex;
+use std::{collections::HashMap, env::current_dir, path::PathBuf, result::Result, sync::Arc};
+use tab_view::TabView;
+use tokio::runtime::Runtime;
 
 mod entry;
-mod dir_view;
 mod settings;
+mod split_view;
+mod tab_view;
 
-lazy_static! {
-    static ref SETTINGS: Settings = {
-        let mut config = Config::new();
+static SETTINGS: Lazy<Settings> = sync_lazy! {
+    let mut config = Config::new();
 
-        // TODO: Print error, but don't quit app
-        match config.merge(config::File::with_name("settings.json")) {
-            Ok(_) => {}
-            Err(_) => {}
-        }
+    // TODO: Print error, but don't quit app
+    match config.merge(config::File::with_name("settings.json")) {
+        Ok(_) => {}
+        Err(_) => {}
+    }
 
-        match config.try_into::<Settings>() {
-            Ok(v) => v,
-            Err(_) => Settings::default(),
-        }
-    };
-}
+    match config.try_into::<Settings>() {
+        Ok(v) => v,
+        Err(_) => Settings::default(),
+    }
+};
+
+static VIEW_CACHE: Lazy<Mutex<HashMap<PathBuf, Arc<Mutex<SplitView>>>>> = sync_lazy! {
+    Mutex::new(HashMap::new())
+};
 
 fn main() -> Result<(), Error> {
     let mut siv = Cursive::ncurses();
-    siv.set_fps(60);
-
     siv.load_theme_file("styles.toml").unwrap();
 
-    let dirs_view = BoxView::with_full_screen(DirView::from(current_dir()?)?);
+    let view = BoxView::with_full_screen(TabView::try_from(current_dir()?)?);
 
-    siv.add_fullscreen_layer(dirs_view);
+    siv.add_fullscreen_layer(view);
     siv.add_global_callback('q', |s| s.quit());
     siv.run();
 
