@@ -10,10 +10,10 @@ use parking_lot::Mutex;
 use std::{collections::HashMap, env::current_dir, path::PathBuf, result::Result, sync::Arc};
 use tab_view::TabView;
 
-mod entry;
-mod settings;
-mod split_view;
-mod tab_view;
+pub mod entry;
+pub mod settings;
+pub mod split_view;
+pub mod tab_view;
 
 static SETTINGS: Lazy<Settings> = sync_lazy! {
     let mut config = Config::new();
