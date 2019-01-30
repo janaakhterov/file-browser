@@ -9,7 +9,6 @@ use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use std::{collections::HashMap, env::current_dir, path::PathBuf, result::Result, sync::Arc};
 use tab_view::TabView;
-use tokio::runtime::Runtime;
 
 mod entry;
 mod settings;

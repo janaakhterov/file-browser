@@ -1,9 +1,8 @@
-use crate::{split_view::SplitView, VIEW_CACHE};
+use crate::split_view::SplitView;
 use cursive::{
     event::{Event, EventResult, Key},
     vec::Vec2,
     view::View,
-    views::BoxView,
     Printer,
 };
 use failure::Error;

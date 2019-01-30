@@ -3,7 +3,7 @@ use cursive::{
     event::{Event, EventResult, Key},
     theme::ColorStyle,
     vec::Vec2,
-    view::{SizeConstraint, View},
+    view::View,
     Printer,
 };
 use failure::Error;
@@ -12,7 +12,7 @@ use futures01::{
     stream::Stream,
 };
 use parking_lot::Mutex;
-use std::{cell::Cell, path::PathBuf, rc::Rc, sync::Arc};
+use std::{cell::Cell, path::PathBuf, sync::Arc};
 use tokio::runtime::Runtime;
 use tokio_fs::read_dir;
 
