@@ -35,6 +35,18 @@ impl TabView {
         })
     }
 
+    pub fn enter_dir(&mut self) {
+        let selected = self.current.lock().selected();
+        if !selected.filetype.is_dir() {
+            return;
+        }
+
+        let path = selected.path.clone();
+
+        self.parent = Some(self.current.clone());
+        self.current = SplitView::try_from(path).unwrap();
+    }
+
     pub fn leave_dir(&mut self) {
         if let Some(parent) = &self.parent {
             self.current = parent.clone();
@@ -100,6 +112,7 @@ impl View for TabView {
             Event::Key(Key::Left) => self.leave_dir(),
             Event::Char(c) => match c {
                 'h' => self.leave_dir(),
+                'l' => self.enter_dir(),
                 _ => return self.current.lock().on_event(event),
             },
             _ => return self.current.lock().on_event(event),

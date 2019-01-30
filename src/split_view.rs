@@ -121,6 +121,10 @@ impl SplitView {
             }
         }
     }
+
+    pub fn selected(&self) -> Entry {
+        self.entries[self.selected].clone()
+    }
 }
 
 impl View for SplitView {
