@@ -35,12 +35,16 @@ impl TabView {
     }
 
     pub fn update_preview(&mut self) {
-        let selected = self.current.lock().selected();
-        if selected.filetype.is_dir() {
-            self.preview = Some(SplitView::try_from(selected.path).unwrap());
-        } else {
-            self.preview = None;
-        }
+        // let selected = self.current.lock().selected();
+        // if selected.filetype.is_dir() {
+        //     self.preview = match SplitView::try_from(selected.path) {
+        //         Ok(v) => Some(v),
+        //         Err(_) => None,
+        //     }
+        // } else {
+        //     self.preview = None;
+        // }
+        self.preview = None;
     }
 
     pub fn enter_dir(&mut self) {
@@ -51,17 +55,24 @@ impl TabView {
 
         let path = selected.path.clone();
 
-        self.parent = Some(self.current.clone());
-        self.current = SplitView::try_from(path).unwrap();
-        self.update_preview();
+        match SplitView::try_from(path) {
+            Ok(v) => {
+                self.parent = Some(self.current.clone());
+                self.current = v;
+                self.update_preview();
+            }
+            Err(_) => {}
+        }
     }
 
     pub fn leave_dir(&mut self) {
         if let Some(parent) = &self.parent {
             self.current = parent.clone();
             if let Some(path) = self.current.lock().path.parent() {
-                let view = SplitView::try_from(path.to_path_buf()).unwrap();
-                self.parent = Some(view);
+                self.parent = match SplitView::try_from(path.to_path_buf()) {
+                    Ok(v) => Some(v),
+                    Err(_) => None,
+                }
             } else {
                 self.parent = None;
             }
@@ -126,8 +137,9 @@ impl View for TabView {
                 _ => {
                     let event = self.current.lock().on_event(event);
                     match event {
-                        EventResult::Consumed(_) => self.update_preview(),
-                        EventResult::Ignored => return EventResult::Ignored,
+                        // EventResult::Consumed(_) => self.update_preview(),
+                        // EventResult::Ignored => return EventResult::Ignored,
+                        _ => return EventResult::Ignored,
                     }
                 }
             },
