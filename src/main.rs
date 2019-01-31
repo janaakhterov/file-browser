@@ -7,13 +7,7 @@ use cursive::{views::BoxView, Cursive};
 use failure::Error;
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
-use std::{
-    collections::HashMap,
-    env::current_dir,
-    path::{Path, PathBuf},
-    result::Result,
-    sync::Arc,
-};
+use std::{collections::HashMap, env::current_dir, path::PathBuf, result::Result, sync::Arc};
 use tab_view::TabView;
 
 pub mod color_pair;
@@ -46,7 +40,6 @@ fn main() -> Result<(), Error> {
     siv.load_theme_file("styles.toml").unwrap();
 
     let view = BoxView::with_full_screen(TabView::try_from(current_dir()?)?);
-    // let view = BoxView::with_full_screen(TabView::try_from(Path::new("/tmp").to_path_buf())?);
 
     siv.add_fullscreen_layer(view);
     siv.add_global_callback('q', |s| s.quit());
