@@ -25,10 +25,8 @@ pub struct SplitView {
 
 impl SplitView {
     pub fn try_from(path: PathBuf) -> Result<Arc<Mutex<Self>>, Error> {
-        {
-            if let Some(cached) = VIEW_CACHE.lock().get(&path) {
-                return Ok(cached.clone());
-            }
+        if let Some(cached) = VIEW_CACHE.lock().get(&path) {
+            return Ok(cached.clone());
         }
 
         let entries = read_dir(path.clone())
@@ -174,11 +172,13 @@ impl View for SplitView {
 
                 printer.with_color(color, |printer| {
                     printer.print((0, j), &element.filename);
-                    printer.print_hline(
-                        (element.filename.len(), j),
-                        printer.size.x - element.filename.len(),
-                        &" ",
-                    );
+                    if element.filename.len() < printer.size.x - 1 {
+                        printer.print_hline(
+                            (element.filename.len(), j),
+                            printer.size.x - element.filename.len(),
+                            &" ",
+                        );
+                    }
                 });
             }
             j = j + 1;

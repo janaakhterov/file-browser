@@ -35,16 +35,16 @@ impl TabView {
     }
 
     pub fn update_preview(&mut self) {
-        // let selected = self.current.lock().selected();
-        // if selected.filetype.is_dir() {
-        //     self.preview = match SplitView::try_from(selected.path) {
-        //         Ok(v) => Some(v),
-        //         Err(_) => None,
-        //     }
-        // } else {
-        //     self.preview = None;
-        // }
-        self.preview = None;
+        let selected = self.current.lock().selected();
+        if selected.filetype.is_dir() {
+            self.preview = match SplitView::try_from(selected.path) {
+                Ok(v) => Some(v),
+                Err(_) => None,
+            }
+        } else {
+            self.preview = None;
+        }
+        // self.preview = None;
     }
 
     pub fn enter_dir(&mut self) {
@@ -137,9 +137,9 @@ impl View for TabView {
                 _ => {
                     let event = self.current.lock().on_event(event);
                     match event {
-                        // EventResult::Consumed(_) => self.update_preview(),
-                        // EventResult::Ignored => return EventResult::Ignored,
-                        _ => return EventResult::Ignored,
+                        EventResult::Consumed(_) => self.update_preview(),
+                        EventResult::Ignored => return EventResult::Ignored,
+                        // _ => return EventResult::Ignored,
                     }
                 }
             },
