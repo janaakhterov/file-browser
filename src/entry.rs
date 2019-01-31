@@ -1,7 +1,7 @@
 use crate::color_pair::ColorPair;
 use std::{
     cmp::Ordering,
-    fs::{FileType, Metadata},
+    fs::{FileType, Metadata, Permissions},
     path::PathBuf,
 };
 
@@ -10,6 +10,7 @@ pub struct Entry {
     pub path: PathBuf,
     pub metadata: Metadata,
     pub filetype: FileType,
+    pub permissions: Permissions,
     pub filename: String,
     pub color: ColorPair,
 }

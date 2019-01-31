@@ -41,7 +41,8 @@ impl SplitView {
                 let filename = entry.file_name().into_string().unwrap();
                 let metadata = poll_fn(move || entry.poll_metadata()).wait().unwrap();
                 let filetype = metadata.file_type();
-                let color = ColorPair::new(&filetype);
+                let permissions = metadata.permissions();
+                let color = ColorPair::new(&filetype, &permissions);
 
                 let first_char = match filename.chars().next() {
                     Some(v) => v,
@@ -56,6 +57,7 @@ impl SplitView {
                     path,
                     metadata,
                     filetype,
+                    permissions,
                     filename,
                     color,
                 })
