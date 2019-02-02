@@ -124,8 +124,12 @@ impl SplitView {
         }
     }
 
-    pub fn selected(&self) -> Entry {
-        self.entries[self.selected].clone()
+    pub fn selected(&self) -> Option<Entry> {
+        if self.entries.len() > 0 {
+            Some(self.entries[self.selected].clone())
+        } else {
+            None
+        }
     }
 }
 

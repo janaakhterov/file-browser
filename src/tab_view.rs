@@ -25,7 +25,14 @@ impl TabView {
         }
 
         let current = SplitView::try_from(path.clone())?;
-        let preview = Some(SplitView::try_from(current.lock().selected().path)?);
+
+        let preview = {
+            if let Some(selected) = current.lock().selected() {
+                Some(SplitView::try_from(selected.path)?)
+            } else {
+                None
+            }
+        };
 
         Ok(TabView {
             parent,
@@ -35,23 +42,23 @@ impl TabView {
     }
 
     pub fn update_preview(&mut self) {
-        let selected = self.current.lock().selected();
-        if selected.filetype.is_dir() {
-            self.preview = match SplitView::try_from(selected.path) {
-                Ok(v) => Some(v),
-                Err(_) => None,
+        if let Some(selected) = self.current.lock().selected() {
+            if selected.filetype.is_dir() {
+                self.preview = match SplitView::try_from(selected.path) {
+                    Ok(v) => Some(v),
+                    Err(_) => None,
+                }
+            } else {
+                self.preview = None;
             }
-        } else {
-            self.preview = None;
         }
-        // self.preview = None;
     }
 
     pub fn enter_dir(&mut self) {
-        let selected = self.current.lock().selected();
-        if !selected.filetype.is_dir() {
-            return;
-        }
+        let selected = match self.current.lock().selected() {
+            Some(v) => v,
+            None => return,
+        };
 
         let path = selected.path.clone();
 
