@@ -17,12 +17,15 @@ pub struct TabView {
 
 impl TabView {
     pub fn try_from(path: PathBuf) -> Result<Self, Error> {
-        let mut parent = None;
-        if let Some(parent_path) = path.parent() {
-            let tmp_parent = SplitView::try_from(parent_path.to_path_buf())?;
-            tmp_parent.lock().change_selected_to(path.clone());
-            parent = Some(tmp_parent);
-        }
+        let parent = {
+            if let Some(parent_path) = path.parent() {
+                let parent = SplitView::try_from(parent_path.to_path_buf())?;
+                parent.lock().change_selected_to(path.clone());
+                Some(parent)
+            } else {
+                None
+            }
+        };
 
         let current = SplitView::try_from(path.clone())?;
 
