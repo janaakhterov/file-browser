@@ -65,13 +65,10 @@ impl TabView {
 
         let path = selected.path.clone();
 
-        match SplitView::try_from(path) {
-            Ok(v) => {
-                self.parent = Some(self.current.clone());
-                self.current = v;
-                self.update_preview();
-            }
-            Err(_) => {}
+        if let Some(preview) = &self.preview {
+            self.parent = Some(self.current.clone());
+            self.current = preview.clone();
+            self.update_preview();
         }
     }
 
