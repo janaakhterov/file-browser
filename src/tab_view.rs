@@ -75,9 +75,13 @@ impl TabView {
     pub fn leave_dir(&mut self) {
         if let Some(parent) = &self.parent {
             self.current = parent.clone();
+            let current_path = self.current.lock().path.clone();
             if let Some(path) = self.current.lock().path.parent() {
                 self.parent = match SplitView::try_from(path.to_path_buf()) {
-                    Ok(v) => Some(v),
+                    Ok(parent) => {
+                        parent.lock().change_selected_to(current_path);
+                        Some(parent)
+                    }
                     Err(_) => None,
                 }
             } else {
