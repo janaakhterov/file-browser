@@ -58,13 +58,6 @@ impl TabView {
     }
 
     pub fn enter_dir(&mut self) {
-        let selected = match self.current.lock().selected() {
-            Some(v) => v,
-            None => return,
-        };
-
-        let path = selected.path.clone();
-
         if let Some(preview) = &self.preview {
             self.parent = Some(self.current.clone());
             self.current = preview.clone();
