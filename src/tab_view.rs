@@ -1,4 +1,4 @@
-use crate::split_view::SplitView;
+use crate::{split_view::SplitView, Connection, KeyPath};
 use cursive::{
     event::{Event, EventResult, Key},
     vec::Vec2,
@@ -10,16 +10,20 @@ use parking_lot::Mutex;
 use std::{path::PathBuf, sync::Arc};
 
 pub struct TabView {
+    conn: Connection,
     parent: Option<Arc<Mutex<SplitView>>>,
     current: Arc<Mutex<SplitView>>,
     preview: Option<Arc<Mutex<SplitView>>>,
 }
 
 impl TabView {
-    pub fn try_from(path: PathBuf) -> Result<Self, Error> {
+    pub fn try_from(conn: Connection, path: PathBuf) -> Result<Self, Error> {
         let parent = {
             if let Some(parent_path) = path.parent() {
-                let parent = SplitView::try_from(parent_path.to_path_buf())?;
+                let parent = SplitView::try_from(KeyPath {
+                    conn: conn.clone(),
+                    path: parent_path.to_path_buf(),
+                })?;
                 parent.lock().change_selected_to(path.clone());
                 Some(parent)
             } else {
@@ -27,17 +31,24 @@ impl TabView {
             }
         };
 
-        let current = SplitView::try_from(path.clone())?;
+        let current = SplitView::try_from(KeyPath {
+            conn: conn.clone(),
+            path: path.clone(),
+        })?;
 
         let preview = {
             if let Some(selected) = current.lock().selected() {
-                Some(SplitView::try_from(selected.path)?)
+                Some(SplitView::try_from(KeyPath {
+                    conn: conn.clone(),
+                    path: selected.path,
+                })?)
             } else {
                 None
             }
         };
 
         Ok(TabView {
+            conn,
             parent,
             current,
             preview,
@@ -47,7 +58,10 @@ impl TabView {
     pub fn update_preview(&mut self) {
         if let Some(selected) = self.current.lock().selected() {
             if selected.filetype.is_dir() {
-                self.preview = match SplitView::try_from(selected.path) {
+                self.preview = match SplitView::try_from(KeyPath {
+                    conn: self.conn.clone(),
+                    path: selected.path,
+                }) {
                     Ok(v) => Some(v),
                     Err(_) => None,
                 }
@@ -70,7 +84,10 @@ impl TabView {
             self.current = parent.clone();
             let current_path = self.current.lock().path.clone();
             if let Some(path) = self.current.lock().path.parent() {
-                self.parent = match SplitView::try_from(path.to_path_buf()) {
+                self.parent = match SplitView::try_from(KeyPath {
+                    conn: self.conn.clone(),
+                    path: path.to_path_buf(),
+                }) {
                     Ok(parent) => {
                         parent.lock().change_selected_to(current_path);
                         Some(parent)

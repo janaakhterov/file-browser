@@ -1,4 +1,4 @@
-use crate::{color_pair::ColorPair, entry::Entry, SETTINGS, VIEW_CACHE};
+use crate::{color_pair::ColorPair, entry::Entry, Connection, KeyPath, SETTINGS, VIEW_CACHE};
 use cursive::{
     event::{Event, EventResult, Key},
     theme::{BaseColor, Color, ColorStyle, ColorType},
@@ -24,12 +24,12 @@ pub struct SplitView {
 }
 
 impl SplitView {
-    pub fn try_from(path: PathBuf) -> Result<Arc<Mutex<Self>>, Error> {
-        if let Some(cached) = VIEW_CACHE.lock().get(&path) {
+    pub fn try_from(key: KeyPath) -> Result<Arc<Mutex<Self>>, Error> {
+        if let Some(cached) = VIEW_CACHE.lock().get(&key) {
             return Ok(cached.clone());
         }
 
-        let entries = read_dir(path.clone())
+        let entries = read_dir(key.path.clone())
             .into_stream()
             .flatten()
             .filter(|entry| {
@@ -91,13 +91,13 @@ impl SplitView {
         };
 
         let split_view = Arc::new(Mutex::new(SplitView {
-            path: path.clone(),
+            path: key.path.clone(),
             entries,
             selected,
             last_offset: Mutex::new(Cell::new(0)),
         }));
 
-        VIEW_CACHE.lock().insert(path, split_view.clone());
+        VIEW_CACHE.lock().insert(key, split_view.clone());
 
         Ok(split_view.clone())
     }

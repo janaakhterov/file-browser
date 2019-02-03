@@ -31,15 +31,17 @@ static SETTINGS: Lazy<Settings> = sync_lazy! {
     }
 };
 
-static VIEW_CACHE: Lazy<Mutex<HashMap<PathBuf, Arc<Mutex<SplitView>>>>> = sync_lazy! {
+static VIEW_CACHE: Lazy<Mutex<HashMap<KeyPath, Arc<Mutex<SplitView>>>>> = sync_lazy! {
     Mutex::new(HashMap::new())
 };
 
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Connection {
     LocalHost,
     SSH(String),
 }
 
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct KeyPath {
     pub conn: Connection,
     pub path: PathBuf,
@@ -62,7 +64,7 @@ fn main() -> Result<(), Error> {
     let mut siv = Cursive::ncurses();
     siv.load_theme_file("styles.toml").unwrap();
 
-    let view = BoxView::with_full_screen(TabView::try_from(current_dir()?)?);
+    let view = BoxView::with_full_screen(TabView::try_from(Connection::LocalHost, current_dir()?)?);
 
     siv.add_fullscreen_layer(view);
     siv.add_global_callback('q', |s| s.quit());
