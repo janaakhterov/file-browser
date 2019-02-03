@@ -143,7 +143,6 @@ impl View for TabView {
                     match event {
                         EventResult::Consumed(_) => self.update_preview(),
                         EventResult::Ignored => return EventResult::Ignored,
-                        // _ => return EventResult::Ignored,
                     }
                 }
             },

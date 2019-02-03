@@ -1,0 +1,57 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+ColorPair	src/color_pair.rs	/^impl ColorPair {$/;"	i
+ColorPair	src/color_pair.rs	/^impl Default for ColorPair {$/;"	i
+ColorPair	src/color_pair.rs	/^pub struct ColorPair {$/;"	T
+Connection	src/main.rs	/^pub enum Connection {$/;"	T
+DefaultColorPair	src/color_pair.rs	/^impl DefaultColorPair {$/;"	i
+DefaultColorPair	src/color_pair.rs	/^pub enum DefaultColorPair {$/;"	T
+Entry	src/entry.rs	/^impl Eq for Entry {}$/;"	i
+Entry	src/entry.rs	/^impl Ord for Entry {$/;"	i
+Entry	src/entry.rs	/^impl PartialEq for Entry {$/;"	i
+Entry	src/entry.rs	/^impl PartialOrd for Entry {$/;"	i
+Entry	src/entry.rs	/^pub struct Entry {$/;"	T
+KeyPath	src/main.rs	/^pub struct KeyPath {$/;"	T
+Opt	src/main.rs	/^pub struct Opt {$/;"	T
+REMOTE_VIEW_CACHE	src/main.rs	/^static REMOTE_VIEW_CACHE: Lazy<Mutex<HashMap<PathBuf, Arc<Mutex<SplitView>>>>> = sync_lazy! {$/;"	c
+SETTINGS	src/main.rs	/^static SETTINGS: Lazy<Settings> = sync_lazy! {$/;"	c
+Settings	src/settings.rs	/^impl Default for Settings {$/;"	i
+Settings	src/settings.rs	/^pub struct Settings {$/;"	T
+SplitView	src/split_view.rs	/^impl SplitView {$/;"	i
+SplitView	src/split_view.rs	/^impl View for SplitView {$/;"	i
+SplitView	src/split_view.rs	/^pub struct SplitView {$/;"	T
+TabView	src/tab_view.rs	/^impl TabView {$/;"	i
+TabView	src/tab_view.rs	/^impl View for TabView {$/;"	i
+TabView	src/tab_view.rs	/^pub struct TabView {$/;"	T
+VIEW_CACHE	src/main.rs	/^static VIEW_CACHE: Lazy<Mutex<HashMap<PathBuf, Arc<Mutex<SplitView>>>>> = sync_lazy! {$/;"	c
+change_selected_by	src/split_view.rs	/^    pub fn change_selected_by(&mut self, difference: i64) {$/;"	f
+change_selected_to	src/split_view.rs	/^    pub fn change_selected_to(&mut self, path: PathBuf) {$/;"	f
+cmp	src/entry.rs	/^    fn cmp(&self, other: &Self) -> Ordering {$/;"	f
+color_pair	src/color_pair.rs	/^    pub fn color_pair(&mut self) -> ColorPair {$/;"	f
+color_pair	src/main.rs	/^pub mod color_pair;$/;"	M
+default	src/color_pair.rs	/^    fn default() -> Self {$/;"	f
+default	src/settings.rs	/^    fn default() -> Self {$/;"	f
+draw	src/split_view.rs	/^    fn draw(&self, printer: &Printer) {$/;"	f
+draw	src/tab_view.rs	/^    fn draw(&self, printer: &Printer) {$/;"	f
+enter_dir	src/tab_view.rs	/^    pub fn enter_dir(&mut self) {$/;"	f
+entry	src/main.rs	/^pub mod entry;$/;"	M
+eq	src/entry.rs	/^    fn eq(&self, other: &Self) -> bool {$/;"	f
+leave_dir	src/tab_view.rs	/^    pub fn leave_dir(&mut self) {$/;"	f
+main	src/main.rs	/^fn main() -> Result<(), Error> {$/;"	f
+new	src/color_pair.rs	/^    pub fn new(filetype: &FileType, permissions: &Permissions) -> Self {$/;"	f
+on_event	src/split_view.rs	/^    fn on_event(&mut self, event: Event) -> EventResult {$/;"	f
+on_event	src/tab_view.rs	/^    fn on_event(&mut self, event: Event) -> EventResult {$/;"	f
+partial_cmp	src/entry.rs	/^    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {$/;"	f
+required_size	src/split_view.rs	/^    fn required_size(&mut self, _constrait: Vec2) -> Vec2 {$/;"	f
+required_size	src/tab_view.rs	/^    fn required_size(&mut self, _constraint: Vec2) -> Vec2 {$/;"	f
+selected	src/split_view.rs	/^    pub fn selected(&self) -> Option<Entry> {$/;"	f
+settings	src/main.rs	/^pub mod settings;$/;"	M
+split_view	src/main.rs	/^pub mod split_view;$/;"	M
+tab_view	src/main.rs	/^pub mod tab_view;$/;"	M
+try_from	src/split_view.rs	/^    pub fn try_from(path: PathBuf) -> Result<Arc<Mutex<Self>>, Error> {$/;"	f
+try_from	src/tab_view.rs	/^    pub fn try_from(path: PathBuf) -> Result<Self, Error> {$/;"	f
+update_preview	src/tab_view.rs	/^    pub fn update_preview(&mut self) {$/;"	f

@@ -1,4 +1,5 @@
 use crate::color_pair::ColorPair;
+use mime_guess::Mime;
 use std::{
     cmp::Ordering,
     fs::{FileType, Metadata, Permissions},
@@ -8,10 +9,11 @@ use std::{
 #[derive(Clone)]
 pub struct Entry {
     pub path: PathBuf,
+    pub filename: String,
     pub metadata: Metadata,
     pub filetype: FileType,
     pub permissions: Permissions,
-    pub filename: String,
+    pub mime: Mime,
     pub color: ColorPair,
 }
 

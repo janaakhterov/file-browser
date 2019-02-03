@@ -8,6 +8,7 @@ use failure::Error;
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use std::{collections::HashMap, env::current_dir, path::PathBuf, result::Result, sync::Arc};
+use structopt::StructOpt;
 use tab_view::TabView;
 
 pub mod color_pair;
@@ -21,8 +22,7 @@ static SETTINGS: Lazy<Settings> = sync_lazy! {
 
     // TODO: Print error, but don't quit app
     match config.merge(config::File::with_name("settings.json")) {
-        Ok(_) => {}
-        Err(_) => {}
+        _ => {}
     }
 
     match config.try_into::<Settings>() {
@@ -35,7 +35,30 @@ static VIEW_CACHE: Lazy<Mutex<HashMap<PathBuf, Arc<Mutex<SplitView>>>>> = sync_l
     Mutex::new(HashMap::new())
 };
 
+pub enum Connection {
+    LocalHost,
+    SSH(String),
+}
+
+pub struct KeyPath {
+    pub conn: Connection,
+    pub path: PathBuf,
+}
+
+#[derive(Debug, StructOpt)]
+pub struct Opt {
+    /// Username for ssh
+    #[structopt(short = "u", long = "username")]
+    pub username: Option<String>,
+
+    /// Username for ssh
+    #[structopt(short = "p", long = "password")]
+    pub password: Option<String>,
+}
+
 fn main() -> Result<(), Error> {
+    let opt = Opt::from_args();
+
     let mut siv = Cursive::ncurses();
     siv.load_theme_file("styles.toml").unwrap();
 
