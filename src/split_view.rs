@@ -24,12 +24,8 @@ pub struct SplitView {
 }
 
 impl SplitView {
-    pub fn try_from(key: KeyPath) -> Result<Arc<Mutex<Self>>, Error> {
-        if let Some(cached) = VIEW_CACHE.lock().get(&key) {
-            return Ok(cached.clone());
-        }
-
-        let entries = read_dir(key.path.clone())
+    pub fn local_read_dir(path: PathBuf) -> Result<Vec<Entry>, Error> {
+        let entries = read_dir(path)
             .into_stream()
             .flatten()
             .filter(|entry| {
@@ -70,30 +66,23 @@ impl SplitView {
 
         let mut entries = Runtime::new()?.block_on(entries)?;
         entries.sort();
+        Ok(entries)
+    }
 
-        let selected = if !SETTINGS.show_hidden {
-            let mut selected = 0;
-            for (i, entry) in entries.iter().enumerate() {
-                let c = match entry.filename.chars().next() {
-                    Some(v) => v,
-                    None => continue,
-                };
-                if c == '.' {
-                    continue;
-                } else {
-                    selected = i;
-                    break;
-                }
-            }
-            selected
-        } else {
-            0
+    pub fn try_from(key: KeyPath) -> Result<Arc<Mutex<Self>>, Error> {
+        if let Some(cached) = VIEW_CACHE.lock().get(&key) {
+            return Ok(cached.clone());
+        }
+
+        let entries = match key.conn {
+            Connection::LocalHost => Self::local_read_dir(key.path.clone())?,
+            Connection::SSH(_address) => panic!("SSH not supported... yet"),
         };
 
         let split_view = Arc::new(Mutex::new(SplitView {
             path: key.path.clone(),
             entries,
-            selected,
+            selected: 0,
             last_offset: Mutex::new(Cell::new(0)),
         }));
 
@@ -101,6 +90,8 @@ impl SplitView {
 
         Ok(split_view.clone())
     }
+
+    // pub fn remote_read_dir() -> Vec<Entry> {}
 
     pub fn change_selected_by(&mut self, difference: i64) {
         let focus = if difference > 0 {
