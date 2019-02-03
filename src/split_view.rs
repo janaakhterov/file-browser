@@ -1,4 +1,4 @@
-use crate::{color_pair::ColorPair, entry::Entry, Connection, KeyPath, SETTINGS, VIEW_CACHE};
+use crate::{color_pair::ColorPair, entry::Entry, Connection, KeyPath, OPT, SETTINGS, VIEW_CACHE};
 use cursive::{
     event::{Event, EventResult, Key},
     theme::{BaseColor, Color, ColorStyle, ColorType},
@@ -12,7 +12,8 @@ use futures01::{
     stream::Stream,
 };
 use parking_lot::Mutex;
-use std::{cell::Cell, path::PathBuf, sync::Arc};
+use ssh2::Session;
+use std::{cell::Cell, net::TcpStream, path::PathBuf, sync::Arc};
 use tokio::runtime::Runtime;
 use tokio_fs::read_dir;
 
@@ -24,6 +25,28 @@ pub struct SplitView {
 }
 
 impl SplitView {
+    pub fn try_from(key: KeyPath) -> Result<Arc<Mutex<Self>>, Error> {
+        if let Some(cached) = VIEW_CACHE.lock().get(&key) {
+            return Ok(cached.clone());
+        }
+
+        let entries = match key.conn {
+            Connection::LocalHost => Self::local_read_dir(key.path.clone())?,
+            Connection::SSH(_address) => panic!("SSH not supported... yet"),
+        };
+
+        let split_view = Arc::new(Mutex::new(SplitView {
+            path: key.path.clone(),
+            entries,
+            selected: 0,
+            last_offset: Mutex::new(Cell::new(0)),
+        }));
+
+        VIEW_CACHE.lock().insert(key, split_view.clone());
+
+        Ok(split_view.clone())
+    }
+
     pub fn local_read_dir(path: PathBuf) -> Result<Vec<Entry>, Error> {
         let entries = read_dir(path)
             .into_stream()
@@ -69,29 +92,27 @@ impl SplitView {
         Ok(entries)
     }
 
-    pub fn try_from(key: KeyPath) -> Result<Arc<Mutex<Self>>, Error> {
-        if let Some(cached) = VIEW_CACHE.lock().get(&key) {
-            return Ok(cached.clone());
+    pub fn remote_read_dir(address: String, path: &PathBuf) -> Result<Vec<Entry>, Error> {
+        if let Some(username) = &OPT.username {
+            let password: String = if OPT.password.is_some() {
+                OPT.password.clone().unwrap()
+            } else {
+                rpassword::read_password_from_tty(Some("Password: "))?
+            };
+
+            let tcp = TcpStream::connect(address)?;
+            let mut sess = Session::new().unwrap();
+            sess.handshake(&tcp)?;
+
+            sess.userauth_password(&username, &password)?;
+            assert!(sess.authenticated());
+
+            let ftp = sess.sftp()?;
+            let _files = ftp.readdir(path)?;
         }
 
-        let entries = match key.conn {
-            Connection::LocalHost => Self::local_read_dir(key.path.clone())?,
-            Connection::SSH(_address) => panic!("SSH not supported... yet"),
-        };
-
-        let split_view = Arc::new(Mutex::new(SplitView {
-            path: key.path.clone(),
-            entries,
-            selected: 0,
-            last_offset: Mutex::new(Cell::new(0)),
-        }));
-
-        VIEW_CACHE.lock().insert(key, split_view.clone());
-
-        Ok(split_view.clone())
+        Ok(Vec::new())
     }
-
-    // pub fn remote_read_dir() -> Vec<Entry> {}
 
     pub fn change_selected_by(&mut self, difference: i64) {
         let focus = if difference > 0 {

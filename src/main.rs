@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate once_cell;
+extern crate structopt;
 
 use crate::{settings::Settings, split_view::SplitView};
 use config::Config;
@@ -35,6 +36,10 @@ static VIEW_CACHE: Lazy<Mutex<HashMap<KeyPath, Arc<Mutex<SplitView>>>>> = sync_l
     Mutex::new(HashMap::new())
 };
 
+static OPT: Lazy<Opt> = sync_lazy! {
+    Opt::from_args()
+};
+
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Connection {
     LocalHost,
@@ -59,8 +64,6 @@ pub struct Opt {
 }
 
 fn main() -> Result<(), Error> {
-    let opt = Opt::from_args();
-
     let mut siv = Cursive::ncurses();
     siv.load_theme_file("styles.toml").unwrap();
 
