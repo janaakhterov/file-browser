@@ -14,6 +14,8 @@ use tab_view::TabView;
 
 pub mod color_pair;
 pub mod entry;
+pub mod file_type;
+pub mod metadata;
 pub mod settings;
 pub mod split_view;
 pub mod tab_view;
