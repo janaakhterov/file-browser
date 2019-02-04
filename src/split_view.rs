@@ -1,4 +1,7 @@
-use crate::{color_pair::ColorPair, entry::Entry, Connection, KeyPath, OPT, SETTINGS, VIEW_CACHE};
+use crate::{
+    color_pair::ColorPair, entry::Entry, file_type::FileType, metadata::Metadata, Connection,
+    KeyPath, OPT, SETTINGS, VIEW_CACHE,
+};
 use cursive::{
     event::{Event, EventResult, Key},
     theme::{BaseColor, Color, ColorStyle, ColorType},
@@ -59,10 +62,10 @@ impl SplitView {
                 let path = entry.path();
                 let filename = entry.file_name().into_string().unwrap();
                 let metadata = poll_fn(move || entry.poll_metadata()).wait().unwrap();
-                let filetype = metadata.file_type();
+                let filetype = FileType::from(metadata.file_type());
+                let metadata = Metadata::LocalHost(metadata);
                 let mime = mime_guess::guess_mime_type(&path);
-                let permissions = metadata.permissions();
-                let color = ColorPair::new(&filetype, &permissions);
+                let color = ColorPair::new(&filetype);
 
                 let first_char = match filename.chars().next() {
                     Some(v) => v,
@@ -78,7 +81,6 @@ impl SplitView {
                     filename,
                     metadata,
                     filetype,
-                    permissions,
                     mime,
                     color,
                 })

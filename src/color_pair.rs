@@ -1,9 +1,5 @@
+use crate::file_type::FileType;
 use cursive::theme::{BaseColor, Color, ColorStyle, ColorType};
-use std::{
-    fs::{FileType, Permissions},
-    ops::BitAnd,
-    os::unix::fs::PermissionsExt,
-};
 
 pub enum DefaultColorPair {
     Red,
@@ -94,17 +90,13 @@ impl Default for ColorPair {
 }
 
 impl ColorPair {
-    pub fn new(filetype: &FileType, permissions: &Permissions) -> Self {
+    pub fn new(filetype: &FileType) -> Self {
         if filetype.is_dir() {
             DefaultColorPair::Blue.color_pair()
         } else if filetype.is_symlink() {
             DefaultColorPair::Cyan.color_pair()
         } else if filetype.is_file() {
-            if permissions.mode().bitand(1) == 1 {
-                DefaultColorPair::Green.color_pair()
-            } else {
-                DefaultColorPair::White.color_pair()
-            }
+            DefaultColorPair::White.color_pair()
         } else {
             ColorPair::default()
         }
